@@ -1,3 +1,3 @@
-# Workflow: Projects
+# Workflow: projects {#workflow-projects .r4ds-section}
 
-No exercises in this chapter.
+`r no_exercises()`

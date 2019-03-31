@@ -1,13 +1,29 @@
 #!/bin/env Rscript
 # Spell check
-library("spelling")
+suppressPackageStartupMessages({
+  library("spelling")
+  library("magrittr")
+})
 wordlist_file <- "WORDLIST"
 
 wordlist <- stringr::str_trim(readLines(wordlist_file))
 
-files <- list.files(".", pattern = "\\.(Rnw|Rmd)$", full.names = TRUE)
-misspelled_words <- spell_check_files(files, ignore = wordlist)
-print(misspelled_words)
+files <- c(
+  list.files(here::here("."), pattern = "\\.(Rnw|Rmd)$", full.names = TRUE),
+  list.files(here::here("rmarkdown"),
+    pattern = "\\.(Rmd)$", full.names = TRUE
+  ),
+  here::here("README.md")
+) %>%
+  normalizePath() %>%
+  unique()
 
-# wordlist <- misspelled_words$word
-# cat(str_c(wordlist, collapse = "\n"), "\n", file = "WORDLIST")
+misspelled_words <- spell_check_files(sort(files), ignore = wordlist)
+any_mispelled <- as.logical(nrow(misspelled_words))
+
+if (any_mispelled) {
+  sink(file = stderr())
+  print(misspelled_words)
+  sink()
+  quit(save = "no", status = 1)
+}

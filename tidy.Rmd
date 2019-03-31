@@ -1,40 +1,42 @@
-# Tidy Data
+# Tidy data {#tidy-data .r4ds-section}
 
-
-## Introduction
+## Introduction {#introduction-6 .r4ds-section}
 
 ```{r message=FALSE}
 library(tidyverse)
 ```
 
-## Tidy Data
+## Tidy data {#tidy-data-1 .r4ds-section}
 
-### Exercise 1 {.exercise}
+### Exercise 12.2.1 {.unnumbered .exercise data-number="12.2.1"}
 
-
-`r BeginQuestion()`
+<div class="question">
 Using prose, describe how the variables and observations are organized in each of the sample tables.
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
-
-In `table1` each row is a (country, year) with variables `cases` and `population`.
+In table `table1`, each row represents a (country, year) combination.
+The columns `cases` and `population` contain the values for those variables.
 ```{r}
 table1
 ```
 
-In `table2`, each row is country, year , variable ("cases", "population") combination, and there is a `count` variable with the numeric value of the variable.
+In `table2`, each row represents a (country, year, variable) combination.
+The column `count` contains the values of variables `cases` and `population` in separate rows.
 ```{r}
 table2
 ```
 
-In `table3`, each row is a (country, year) combination with the column `rate` having the rate of cases to population as a character string in the format `"cases/rate"`.
+In `table3`, each row represents a (country, year) combination.
+The column `rate` provides the values of both `cases` and `population` in a string formatted like `cases / population`.
 ```{r}
 table3
 ```
 
-Table 4 is split into two tables, one table for each variable: `table4a` is the table for cases, while `table4b` is the table for population. Within each table, each row is a country, each column is a year, and the cells are the value of the variable for the table.
+Table 4 is split into two tables, one table for each variable.
+The table `table4a` contains the values of cases and `table4b` contains the values of population.
+Within each table, each row represents a country, each column represents a year, and the cells are the value of the table's variable for that country and year.
 ```{r}
 table4a
 ```
@@ -42,79 +44,114 @@ table4a
 table4b
 ```
 
-`r EndAnswer()`
+</div>
 
-### Exercise 2 {.exercise}
+### Exercise 12.2.2 {.unnumbered .exercise data-number="12.2.2"}
 
+<div class="question">
 
-`r BeginQuestion()`
-Compute the `rate` for `table2`, and `table4a` + `table4b`. You will need to perform four operations:
-`r EndQuestion()`
+Compute the `rate` for `table2`, and `table4a` + `table4b`. 
+You will need to perform four operations:
 
+1.  Extract the number of TB cases per country per year.
+1.  Extract the matching population per country per year.
+1.  Divide cases by population, and multiply by 10000.
+1.  Store back in the appropriate place.
 
-`r BeginAnswer()`
->
->  1.  Extract the number of TB cases per country per year.
->  2.  Extract the matching population per country per year.
->  3.  Divide cases by population, and multiply by 10000.
->  4.  Store back in the appropriate place.
-  
-Which representation is easiest to work with? Which is hardest? Why?
+Which representation is easiest to work with? 
+Which is hardest? 
+Why?
 
-Without using the join functions introduced in Ch 12:
+</div>
+
+<div class="answer">
+
+To calculate cases per person, we need to divide cases by population for each country and year.
+This is easiest if the cases and population variables are two columns in a data frame in which rows represent (country, year) combinations.
+
+Table 2: First, create separate tables for cases and population and ensure that they are sorted in the same order.
 ```{r}
-tb2_cases <- filter(table2, type == "cases")[["count"]]
-tb2_country <- filter(table2, type == "cases")[["country"]]
-tb2_year <- filter(table2, type == "cases")[["year"]]
-tb2_population <- filter(table2, type == "population")[["count"]]
-table2_clean <- tibble(country = tb2_country,
-       year = tb2_year,
-       rate = tb2_cases / tb2_population)
-table2_clean
+t2_cases <- filter(table2, type == "cases") %>%
+  rename(cases = count) %>%
+  arrange(country, year)
+t2_population <- filter(table2, type == "population") %>%
+  rename(population = count) %>%
+  arrange(country, year)
 ```
-Note, that this assumes that all observations are sorted so that each country, year will have the observation for cases followed by population.
-
+Then create a new data frame with the population and cases columns, and calculate the cases per capita in a new column.[^ex-12.2.2]
 ```{r}
-tibble(country = table4a[["country"]],
-       `1999` = table4a[["1999"]] / table4b[["1999"]],
-       `2000` = table4b[["2000"]] / table4b[["2000"]])
-```
-or 
-```{r}
-tibble(country = rep(table4a[["country"]], 2),
-       year = rep(c(1999, 2000), each = nrow(table4a)),
-       `rate` = c(table4a[["1999"]] / table4b[["1999"]],
-                  table4b[["2000"]] / table4b[["2000"]]))
+t2_cases_per_cap <- tibble(
+  year = t2_cases$year,
+  country = t2_cases$country,
+  cases = t2_cases$cases,
+  population = t2_population$population
+) %>%
+  mutate(cases_per_cap = (cases / population) * 10000) %>%
+  select(country, year, cases_per_cap)
 ```
 
-
-`r EndAnswer()`
-
-### Exercise 3 {.exercise}
-
-
-`r BeginQuestion()`
-Recreate the plot showing change in cases over time using `table2` instead of `table1`. What do you need to do first?
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
-
-First, I needed to filter the tibble to only include those rows that represented the "cases" variable.
+To store this new variable in the appropriate location, we will add new rows to `table2`.
 ```{r}
-table2 %>% 
+t2_cases_per_cap <- t2_cases_per_cap %>%
+  mutate(type = "cases_per_cap") %>%
+  rename(count = cases_per_cap)
+```
+```{r}
+bind_rows(table2, t2_cases_per_cap) %>%
+  arrange(country, year, type, count)
+```
+Note that after adding the `cases_per_cap` rows, the type of `count` is coerced to `numeric` (double) because `cases_per_cap` is not an integer.
+
+For `table4a` and `table4b`, create a new table for cases per capita, which we'll name `table4c`, with country rows and year columns.
+```{r}
+table4c <-
+  tibble(
+    country = table4a$country,
+    `1999` = table4a[["1999"]] / table4b[["1999"]] * 10000,
+    `2000` = table4a[["2000"]] / table4b[["2000"]] * 10000
+  )
+table4c
+```
+
+Neither table is particularly easy to work with.
+Since `table2` has separate rows for cases and population we needed to generate a table with columns for cases and population where we could
+calculate cases per capita.
+`table4a` and `table4b` split the cases and population variables into different tables which
+made it easy to divide cases by population.
+However, we had to repeat this calculation for each row.
+
+The ideal format of a data frame to answer this question is one with columns `country`, `year`, `cases`, and `population`.
+Then problem could be answered with a single `mutate()` call.
+
+</div>
+
+### Exercise 12.2.3 {.unnumbered .exercise data-number="12.2.3"}
+
+<div class="question">
+
+Recreate the plot showing change in cases over time using `table2` instead of `table1`. 
+What do you need to do first?
+
+</div>
+
+<div class="answer">
+
+Before creating the plot with change in cases over time, we need to filter `table` to only include rows representing cases of TB.
+```{r}
+table2 %>%
   filter(type == "cases") %>%
-  ggplot(aes(year, count)) + 
-  geom_line(aes(group = country), colour = "grey50") + 
-  geom_point(aes(colour = country))
+  ggplot(aes(year, count)) +
+  geom_line(aes(group = country), colour = "grey50") +
+  geom_point(aes(colour = country)) +
+  scale_x_continuous(breaks = unique(table2$year)) +
+  ylab("cases")
 ```
 
+</div>
 
-`r EndAnswer()`
+## Spreading and gathering {#spreading-and-gathering .r4ds-section}
 
-## Spreading and Gathering
-
-This code is reproduced from the chapter because it is needed by the exercises:
+This code is reproduced from the chapter because it is needed by the exercises.
 ```{r}
 tidy4a <- table4a %>%
   gather(`1999`, `2000`, key = "year", value = "cases")
@@ -122,87 +159,107 @@ tidy4b <- table4b %>%
   gather(`1999`, `2000`, key = "year", value = "cases")
 ```
 
+### Exercise 12.3.1 {.unnumbered .exercise data-number="12.3.1"}
 
-### Exercise 1 {.exercise}
+<div class="question">
 
-
-`r BeginQuestion()`
 Why are `gather()` and `spread()` not perfectly symmetrical?
 Carefully consider the following example:
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
 
 ```{r}
 stocks <- tibble(
-  year   = c(2015, 2015, 2016, 2016),
-  half  = c(   1,    2,     1,    2),
+  year = c(2015, 2015, 2016, 2016),
+  half = c(1, 2, 1, 2),
   return = c(1.88, 0.59, 0.92, 0.17)
 )
-stocks %>% 
-  spread(year, return) %>% 
-  gather("year", "return", `2015`:`2016`)
+stocks %>%
+  spread(year, return) %>%
+  gather(`2015`:`2016`, key = "year", value = "return")
 ```
 
-The functions `spread` and `gather` are not perfectly symmetrical because column type information is not transferred between them. 
-In the original table the column `year` was numeric, but after running `spread()` and `gather()` it is a character vector. 
-This is because variable names are always converted to a character vector by `gather()`.
+</div>
 
-The `convert` argument tries to convert character vectors to the appropriate type. 
-In the background this uses the `type.convert` function.
+<div class="answer">
+
+The functions `spread()` and `gather()` are not perfectly symmetrical because column type information is lost.
+When we use `gather()` on a data frame, it discards the original column types.
+It has to coerce all the gathered variables into a single vector with a single type.
+Later, if we `spread()` that data frame, the `spread()` function does not know the original data types of the variables.
+
+In this example, the column `year` is numeric.
+After running `spread()` and `gather()`, the `year` column is a character vector.
+After `spread()`, the years are column names.
 ```{r}
-stocks %>% 
-  spread(year, return) %>% 
-  gather("year", "return", `2015`:`2016`, convert = TRUE)
+stocks %>%
+  spread(year, return)
+```
+The following use of `gather()` will create a column, `year`, from the column names.
+However, since column names are used to create the key column, the resulting vector is a character vector.
+Even though we "know" that the all the column names refer to years, which are numbers, the `gather()` function does not know that.
+```{r}
+stocks %>%
+  spread(year, return) %>%
+  gather(`2015`:`2016`, key = "year", value = "return")
 ```
 
-`r EndAnswer()`
+The functions `spread()` and `gather()` are almost symmetrical if we use the `convert` argument.
+When `convert = TRUE`, the `gather()` function will attempt to convert vectors to the appropriate type using `type.convert()`.
+```{r}
+stocks %>%
+  spread(key = "year", value = "return") %>%
+  gather(`2015`:`2016`, key = "year", value = "return", convert = TRUE)
+```
+Now, `year` is an integer vector.
+However, this conversion is merely guessing the type of the variables and so will not always return the original variable types.
+That information is lost.
 
-### Exercise 2 {.exercise}
+</div>
 
+### Exercise 12.3.2 {.unnumbered .exercise data-number="12.3.2"}
 
-`r BeginQuestion()`
+<div class="question">
+
 Why does this code fail?
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
 
 ```{r error=TRUE}
-table4a %>% 
+table4a %>%
   gather(1999, 2000, key = "year", value = "cases")
 ```
+</div>
 
-The code fails because the column names `1999` and `2000` are not standard and thus needs to be quoted.
-The tidyverse functions will interpret `1999` and `2000` without quotes as looking for the 1999th and 2000th column of the data frame.
-This will work:
+<div class="answer">
+
+The code fails because the column names `1999` and `2000` are not non-syntactic variable names.[^non-syntactic]
+When selecting variables from a data frame, tidyverse functions will interpret numbers, like `1999` and `2000`, as column numbers.
+In this case, `gather()` tries to select 1999th and 2000th column of the data frame.
+To select the columns `1999` and `2000`, you can either surround their names in backticks (`\``) or provide them as strings.
 ```{r}
-table4a %>% 
+table4a %>%
   gather(`1999`, `2000`, key = "year", value = "cases")
 ```
+```{r}
+table4a %>%
+  gather("1999", "2000", key = "year", value = "cases")
+```
 
-`r EndAnswer()`
+</div>
 
-### Exercise 3 {.exercise}
+### Exercise 12.3.3 {.unnumbered .exercise data-number="12.3.3"}
 
+<div class="question">
 
-`r BeginQuestion()`
-Why does spreading this tibble fail? How could you add a new column to fix the problem?
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
+Why does spreading this tibble fail? 
+How could you add a new column to fix the problem?
 
 ```{r}
 people <- tribble(
-  ~name,             ~key,    ~value,
+  ~name, ~key, ~value,
   #-----------------|--------|------
-  "Phillip Woods",   "age",       45,
-  "Phillip Woods",   "height",   186,
-  "Phillip Woods",   "age",       50,
-  "Jessica Cordero", "age",       37,
-  "Jessica Cordero", "height",   156
+  "Phillip Woods",  "age", 45,
+  "Phillip Woods", "height", 186,
+  "Phillip Woods", "age", 50,
+  "Jessica Cordero", "age", 37,
+  "Jessica Cordero", "height", 156
 )
 glimpse(people)
 ```
@@ -211,197 +268,271 @@ glimpse(people)
 spread(people, key, value)
 ```
 
-Spreading the data frame fails because there are two rows with "age" for "Phillip Woods".
-We would need to add another column with an indicator for the number observation it is,
+</div>
 
+<div class="answer">
+
+Spreading this data frame fails because the `name` and `key` columns do not uniquely identify rows.
+In particular, there are two rows with values for the age of "Phillip Woods".
+
+We could solve the problem by adding a row with a distinct observation count for each combination of name and key.
 ```{r}
-people <- tribble(
-  ~name,             ~key,    ~value, ~obs,
-  #-----------------|--------|------|------
-  "Phillip Woods",   "age",       45, 1,
-  "Phillip Woods",   "height",   186, 1,
-  "Phillip Woods",   "age",       50, 2,
-  "Jessica Cordero", "age",       37, 1,
-  "Jessica Cordero", "height",   156, 1
-)
-spread(people, key, value)
+people2 <- people %>%
+  group_by(name, key) %>%
+  mutate(obs = row_number())
+people2
+```
+We can spread `people2` because the combination of `name` and `obs` will uniquely identify the spread rows.
+```{r}
+spread(people2, key, value)
 ```
 
+Another way to solve this problem is by keeping only distinct rows of the name and key values, and dropping duplicate rows.
+```{r}
+people %>%
+  distinct(name, key, .keep_all = TRUE) %>%
+  spread(key, value)
+```
+However, before doing this you would want to understand why there are duplicates in the data to begin with.
+This is usually not merely a nuisance, but indicates deeper problems with the data.
 
-`r EndAnswer()`
+</div>
 
-### Exercise 4 {.exercise}
+### Exercise 12.3.4 {.unnumbered .exercise data-number="12.3.4"}
 
+<div class="question">
 
-`r BeginQuestion()`
-Tidy the simple tibble below. Do you need to spread or gather it? What are the variables?
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
+Tidy the simple tibble below. 
+Do you need to spread or gather it? 
+What are the variables?
 
 ```{r}
 preg <- tribble(
   ~pregnant, ~male, ~female,
-  "yes",     NA,    10,
-  "no",      20,    12
+  "yes", NA, 10,
+  "no", 20, 12
 )
 ```
 
-You need to gather it. The variables are:
+</div>
 
-- pregnant: logical ("yes", "no")
-- female: logical
-- count: integer
+<div class="answer">
+
+To tidy the `preg` tibble, we need to use `gather()`. 
+The variables in this data are:
+
+-   `sex` ("female", "male")
+-   `pregnant` ("yes", "no")
+-   `count`, which is a non-negative integer representing the number of observations.
+
+The observations in this data are unique combinations of sex and pregnancy status.
 
 ```{r}
-gather(preg, sex, count, male, female) %>%
-  mutate(pregnant = pregnant == "yes",
-         female = sex == "female") %>%
-  select(-sex)
+preg_tidy <- preg %>%
+  gather(male, female, key = "sex", value = "count")
+preg_tidy
 ```
-Converting `pregnant` and `female` from character vectors to logical was not necessary to tidy it, but it makes it easier to work with.
 
-`r EndAnswer()`
-
-## Separating and Uniting
-
-### Exercise 1 {.exercise}
-
-
-`r BeginQuestion()`
-What do the extra and fill arguments do in `separate()`? Experiment with the various  options for the following two toy datasets.
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
+We can simplify the tidied data frame by removing the (male, pregnant) row with the missing value of `NA`.
 
 ```{r}
-tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+preg_tidy2 <- preg %>%
+  gather(male, female, key = "sex", value = "count", na.rm = TRUE)
+preg_tidy2
+```
+
+This an example of turning an explicit missing value into an implicit missing value, which is discussed in the upcoming [Missing Values](http://r4ds.had.co.nz/tidy-data.html#missing-values-3) section.
+The missing (male, pregnant) row represents is an implicit missing value because the missing value of `count` can be inferred from its absence.
+In the tidy data, we can represent rows with missing values of `count` either explicitly with an `NA` (as in `preg_tidy`) or implicitly by the absence of a row (as in `preg_tidy2`). 
+But in the wide data, the missing values can only be represented explicitly.
+
+Though we have already done enough to make the data tidy, there's some other changes that can be made to clean this data.
+If a variable takes two values, like `pregnant` and `sex`, it is often preferable to store them as logical vectors.
+```{r}
+preg_tidy3 <- preg_tidy2 %>%
+  mutate(
+    female = sex == "female",
+    pregnant = pregnant == "yes"
+  ) %>%
+  select(female, pregnant, count)
+preg_tidy3
+```
+In the previous data frame, I named the logical variable representing the sex `female`, not `sex`.
+This makes the meaning of the variable self-documenting.
+If the variable were named `sex` with values `TRUE` and `FALSE`, without reading the documentation, we wouldn't know whether `TRUE` means male or female.
+
+Apart from some minor memory savings, representing these variables as logical vectors results in more clear and concise code.
+Compare the `filter()` calls to select non-pregnant females from `preg_tidy2` and `preg_tidy`.
+```{r}
+filter(preg_tidy2, sex == "female", pregnant == "no")
+filter(preg_tidy3, female, !pregnant)
+```
+
+</div>
+
+## Separating and uniting {#separating-and-uniting .r4ds-section}
+
+### Exercise 12.4.1 {.unnumbered .exercise data-number="12.4.1"}
+
+<div class="question">
+
+What do the extra and fill arguments do in `separate()`?
+Experiment with the various options for the following two toy datasets.
+
+```{r}
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
   separate(x, c("one", "two", "three"))
 
-tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>%
   separate(x, c("one", "two", "three"))
 ```
 
-```{r}
-?separate
-```
+</div>
 
-The `extra` argument tells `separate` what to do if there are too many pieces,
-and the `fill` argument if there aren't enough.
+<div class="answer">
 
+The `extra` argument tells `separate()` what to do if there are too many pieces, and the `fill` argument tells it what to do if there aren't enough.
+By default, `separate()` drops extra values with a warning.
 ```{r}
-tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
   separate(x, c("one", "two", "three"))
 ```
-By default `separate` drops the extra values with a warning.
+
+Adding the argument, `extra = "drop"`, produces the same result as above but without the warning.
 ```{r}
-tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
   separate(x, c("one", "two", "three"), extra = "drop")
 ```
-This produces the same result as above, dropping extra values, but without the warning.
+
+Setting `extra = "merge"`, then the extra values are not split, so `"f,g"` appears in column three.
 ```{r}
-tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>%
   separate(x, c("one", "two", "three"), extra = "merge")
 ```
-In this, the extra values are not split, so `"f,g"` appears in column three.
 
-In this, one of the entries for column, `"d,e"`, has too few elements.
-The default for `fill` is similar to `separate`; it fills with missing values but emits a warning. In this, row 2 of column "three", is `NA`.
+In this example, one of the values, `"d,e"`, has too few elements.
+The default for `fill` is similar to those in `separate()`; 
+it fills columns with missing values but emits a warning. 
+In this example, the 2nd row of column `three` is `NA`.
+
 ```{r}
-tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>%
   separate(x, c("one", "two", "three"))
 ```
 
-Alternative options for `fill` are `"right"`, to fill with missing values from the right, but without a warning
+Alternative options for the `fill` are `"right"`, to fill with missing values from the right, but without a warning
 ```{r}
-tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>%
   separate(x, c("one", "two", "three"), fill = "right")
 ```
-The option `fill = "left"` also fills with missing values without a warning, but this time from the left side.
-Now, column "one" of row 2 will be missing, and the other values in that row are shifted over.
+The option `fill = "left"` also fills with missing values without emitting a warning, but this time from the left side.
+Now, the 2nd row of column `one` will be missing, and the other values in that row are shifted right.
 ```{r}
-tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>%
   separate(x, c("one", "two", "three"), fill = "left")
 ```
 
-`r EndAnswer()`
+</div>
 
-### Exercise 2 {.exercise}
+### Exercise 12.4.2 {.unnumbered .exercise data-number="12.4.2"}
 
+<div class="question">
 
-`r BeginQuestion()`
-Both `unite()` and `separate()` have a remove argument. What does it do? Why would you set it to `FALSE`?
-`r EndQuestion()`
+Both `unite()` and `separate()` have a `remove` argument. 
+What does it do?
+Why would you set it to `FALSE`?
 
+</div>
 
-`r BeginAnswer()`
+<div class="answer">
 
-You would set it to `FALSE` if you want to create a new variable, but keep the old one.
+The `remove` argument discards input columns in the result data frame. You would set it to `FALSE` if you want to create a new variable, but keep the old one.
 
-`r EndAnswer()`
+</div>
 
-### Exercise 3 {.exercise}
+### Exercise 12.4.3 {.unnumbered .exercise data-number="12.4.3"}
 
-
-`r BeginQuestion()`
+<div class="question">
 Compare and contrast `separate()` and `extract()`, Why are there three variations of separation (by position, by separator, and with groups), but only one unite?
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
+The function `separate()`, splits a column into multiple columns by separator, if the `sep` argument is a character vector, or by character positions, if `sep` is numeric.
+```{r}
+# example with separators
+tibble(x = c("X_1", "X_2", "AA_1", "AA_2")) %>%
+  separate(x, c("variable", "into"), sep = "_")
 
-The function `extract` uses a regular expression to find groups and split into columns.
-In `unite` it is unambiguous since it is many columns to one, and once the columns are specified, there is only one way to do it, the only choice is the `sep`.
-In `separate`, it is one to many, and there are multiple ways to split the character string.
+# example with position
+tibble(x = c("X1", "X2", "Y1", "Y2")) %>%
+  separate(x, c("variable", "into"), sep = c(1))
+```
 
+The function `extract()` uses a regular expression to specify groups in character vector and split that single character vector into multiple columns.
+This is more flexible than `separate()` because it does not require a common
+separator or specific column positions.
 
-`r EndAnswer()`
+```{r}
+# example with separators
+tibble(x = c("X_1", "X_2", "AA_1", "AA_2")) %>%
+  extract(x, c("variable", "id"), regex = "([A-Z])_([0-9])")
 
-## Missing Values
+# example with position
+tibble(x = c("X1", "X2", "Y1", "Y2")) %>%
+  extract(x, c("variable", "id"), regex = "([A-Z])([0-9])")
 
+# example that separate could not parse
+tibble(x = c("X1", "X20", "AA11", "AA2")) %>%
+  extract(x, c("variable", "id"), regex = "([A-Z]+)([0-9]+)")
+```
 
-### Exercise 1 {.exercise}
+Both `separate()` and `extract()` convert a single column to many columns.
+However, `unite()` converts many columns to one, with a choice of a separator to include between column values.
 
+```{r}
+tibble(variable = c("X", "X", "Y", "Y"), id = c(1, 2, 1, 2)) %>%
+  unite(x, variable, id, sep = "_")
+```
 
-`r BeginQuestion()`
+In other words, with `extract()` and `separate()` only one column can be chosen,
+but there are many choices how to split that single column into different columns.
+With `unite()`, there are many choices as to which columns to include, but only one 
+choice as to how to combine their contents into a single vector.
+
+</div>
+
+## Missing values {#missing-values-3 .r4ds-section}
+
+### Exercise 12.5.1 {.unnumbered .exercise data-number="12.5.1"}
+
+<div class="question">
 Compare and contrast the `fill` arguments to `spread()` and `complete()`.
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
-
-```{r}
-?spread
-```
-```{r}
-?complete
-```
-
-In `spread`, the fill argument explicitly sets the value to replace `NA`s.
-In `complete`, the fill argument also sets a value to replace `NA`s but it is named list, allowing for different values for different variables.
+In `spread()`, the fill argument explicitly sets the value to replace `NA`s.
+In `complete()`, the fill argument also sets a value to replace `NA`s but it is named list, allowing for different values for different variables.
 Also, both cases replace both implicit and explicit missing values.
 
-`r EndAnswer()`
+</div>
 
-### Exercise 2 {.exercise}
+### Exercise 12.5.2 {.unnumbered .exercise data-number="12.5.2"}
 
+<div class="question">
 
-`r BeginQuestion()`
-What does the direction argument to `fill()` do?
-`r EndQuestion()`
+What does the `direction` argument to `fill()` do?
 
+</div>
 
-`r BeginAnswer()`
+<div class="answer">
 
-With `fill`, it determines whether `NA` values should be replaced by the previous non-missing value (`"down"`) or the next non-missing value (`"up"`).
+With `fill`, the `direction` determines whether `NA` values should be replaced by the previous non-missing value (`"down"`) or the next non-missing value (`"up"`).
 
+</div>
 
-
-`r EndAnswer()`
-
-## Case Study
+## Case Study {#case-study .r4ds-section}
 
 This code is repeated from the chapter because it is needed by the exercises.
 
@@ -413,8 +544,7 @@ glimpse(who1)
 
 ```{r}
 who2 <- who1 %>%
- mutate(key = stringr::str_replace(key, "newrel", "new_rel"))
-
+  mutate(key = stringr::str_replace(key, "newrel", "new_rel"))
 ```
 
 ```{r}
@@ -439,53 +569,91 @@ who5 <- who4 %>%
 who5
 ```
 
-### Exercise 1 {.exercise}
+### Exercise 12.6.1 {.unnumbered .exercise data-number="12.6.1"}
 
+<div class="question">
 
-`r BeginQuestion()`
-In this case study I set `na.rm = TRUE` just to make it easier to check that we had the correct values. Is this reasonable? Think about how missing values are represented in this dataset. Are there implicit missing values? What’s the difference between an `NA` and zero?
-`r EndQuestion()`
+In this case study, I set `na.rm = TRUE` just to make it easier to check that we had the correct values. 
+Is this reasonable? 
+Think about how missing values are represented in this dataset. 
+Are there implicit missing values? 
+What’s the difference between an `NA` and zero?
 
+</div>
 
-`r BeginAnswer()`
+<div class="answer">
 
-Perhaps? I would need to know more about the data generation process. 
-There are zero's in the data, which means they may explicitly be indicating no cases.
+The reasonableness of using `na.rm = TRUE` depends on how missing values are represented in this dataset.
+The main concern is whether a missing value means that there were no cases of TB or whether it means that the WHO does not have data on the number of TB cases.
+Here are some things we should look for to help distinguish between these cases.
+
+-   If there are no 0 values in the data, then missing values may be used to indicate no cases.
+
+-   If there are both explicit and implicit missing values, then it suggests that missing values
+    are being used differently. In that case, it is likely that explicit missing values would
+    mean no cases, and implicit missing values would mean no data on the number of cases.
+
+First, I'll check for the presence of zeros in the data. 
 ```{r}
 who1 %>%
   filter(cases == 0) %>%
   nrow()
 ```
+There are zeros in the data, so it appears that cases of zero TB cases are explicitly indicated, and `NA` is used to indicate missing data.
 
-So it appears that either a country has all its values in a year as non-missing if the WHO collected data for that country, or all its values are non-missing. 
-So it is okay to treat explicitly and implicitly missing values the same, and we don't lose any information by dropping them.
+Second, I should check whether all values for a (country, year) are missing or whether it is possible for only some values to be missing.
 ```{r}
 gather(who, new_sp_m014:newrel_f65, key = "key", value = "cases") %>%
-  group_by(country, year)  %>%
-  mutate(missing = is.na(cases)) %>%
-  select(country, year, missing) %>%
-  distinct() %>%
   group_by(country, year) %>%
-  filter(n() > 1)
+  mutate(prop_missing = sum(is.na(cases)) / n()) %>%
+  filter(prop_missing > 0, prop_missing < 1)
 
 ```
+It looks like it is possible for certain variables to missing for (country, years).
 
+Finally, I will check for implicit missing values. 
+Implicit missing values are (`year`, `country`) combinations that do not appear in the data.
+```{r}
+nrow(who)
 
+who %>% 
+  complete(country, year) %>%
+  nrow()
+```
+Since the number of complete cases of (`country`, `year`) is greater than the number of rows in `who`, there are some implicit values.
+But that doesn't tell us what those implicit missing values are.
+To do this, I will use the `anti_join()` function introduced in the later [Relational Data](https://r4ds.had.co.nz/relational-data.html#filtering-joins) chapter.
+```{r}
+anti_join(complete(who, country, year), who, by = c("country", "year")) %>% 
+  select(country, year) %>% 
+  group_by(country) %>% 
+  # so I can make better sense of the years
+  summarise(min_year = min(year), max_year = max(year))
+```
+All of these refer to (`country`, `year`) combinations for years prior to the existence of the country.
+For example, Timor-Leste achieved independence in 2002, so years prior to that are not included in the data.
 
-`r EndAnswer()`
+To summarize:
 
-### Exercise 2 {.exercise}
+-   `0` is used to represent no cases of TB.
+-   Explicit missing values (`NA`s) are used to represent missing data for (`country`, `year`) combinations in which the country existed in that year.
+-   Implicit missing values are used to represent missing data because a country did not exist in that year.
 
+</div>
 
-`r BeginQuestion()`
-What happens if you neglect the `mutate()` step? (`mutate(key = stringr::str_replace(key, "newrel", "new_rel")`)
-`r EndQuestion()`
+### Exercise 12.6.2 {.unnumbered .exercise data-number="12.6.2"}
 
+<div class="question">
 
-`r BeginAnswer()`
+What happens if you neglect the `mutate()` step? 
+(`mutate(key = stringr::str_replace(key, "newrel", "new_rel")`)
 
-`separate` emits the warning "too few values", and if we check the 
-rows for keys beginning with `"newrel_"`, we see that `sexage` is messing, 
+</div>
+
+<div class="answer">
+
+The `separate()` function emits the warning "too few values".
+If we check the rows for keys beginning with `"newrel_"`, we see that `sexage` is missing,
 and `type = m014`.
 
 ```{r}
@@ -495,39 +663,44 @@ who3a <- who1 %>%
 filter(who3a, new == "newrel") %>% head()
 ```
 
+</div>
 
-`r EndAnswer()`
+### Exercise 12.6.3 {.unnumbered .exercise data-number="12.6.3"}
 
-### Exercise 3 {.exercise}
+<div class="question">
 
+I claimed that `iso2` and `iso3` were redundant with country. 
+Confirm this claim.
 
-`r BeginQuestion()`
-I claimed that `iso2` and `iso3` were redundant with country. Confirm this claim.
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
-
+If `iso2` and `iso3` are redundant with `country`, then, within each country, 
+there should only be one distinct combination of `iso2` and `iso3` values, which is the case.
 ```{r}
 select(who3, country, iso2, iso3) %>%
   distinct() %>%
   group_by(country) %>%
   filter(n() > 1)
-
 ```
 
+This makes sense, since `iso2` and `iso3` contain the 2- and 3-letter country abbreviations for the country.
+The `iso2` variable contains each country's [ISO 3166 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2), and the `iso3` variable contains the each country's [ISO 3166 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) abbreviation.
+You may recognize the ISO 3166-2 abbreviations, since they are almost identical to internet [country-code top level domains](https://en.wikipedia.org/wiki/Country_code_top-level_domain), such as `.uk`.
 
-`r EndAnswer()`
+</div>
 
-### Exercise 4 {.exercise}
+### Exercise 12.6.4 {.unnumbered .exercise data-number="12.6.4"}
 
+<div class="question">
 
-`r BeginQuestion()`
-For each country, year, and sex compute the total number of cases of TB. Make an informative visualization of the data.
-`r EndQuestion()`
+For each country, year, and sex compute the total number of cases of TB.
+Make an informative visualization of the data.
 
+</div>
 
-`r BeginAnswer()`
+<div class="answer">
 
 ```{r}
 who5 %>%
@@ -537,16 +710,18 @@ who5 %>%
   unite(country_sex, country, sex, remove = FALSE) %>%
   ggplot(aes(x = year, y = cases, group = country_sex, colour = sex)) +
   geom_line()
-
-  
 ```
 
 A small multiples plot faceting by country is difficult given the number of countries.
 Focusing on those countries with the largest changes or absolute magnitudes after providing the context above is another option.
 
+</div>
 
-`r EndAnswer()`
+## Non-tidy data {#non-tidy-data .r4ds-section}
 
-## Non-Tidy Data
+`r no_exercises()`
 
-No exercises
+[ex-12.2.2]: It would be better to join these tables using the methods covered in the [Relational Data](https://r4ds.had.co.nz/relational-data.html). 
+             We could use `inner_join(t2_cases, t2_population, by = c("country", "year"))`.
+
+[non-syntactic]: See the [Creating Tibbles](https://r4ds.had.co.nz/tibbles.html#tibbles) section.

@@ -3,18 +3,39 @@ bookdown::gitbook:
     toc:
       collapse: section
       before: |
-        <li><strong><a href="./">R for Data Science Solutions</a></strong></li>
+        <li><strong><a href="./">R for Data Science:<br>Exercise Solutions</a></strong></li>
+
+      after: |
+        <li><a href="https://github.com/rstudio/bookdown">Proudly published with bookdown</a></li>
+
     edit:
       link: https://github.com/jrnold/r4ds-exercise-solutions/edit/master/%s
       text: "Edit"
-    sharing: no
-  css: ["r4ds.css", "r4ds-solutions.css"]
-  md_extensions: "+native_divs"
-  download: ["pdf"]
-
-bookdown::pdf_book:
-  keep_tex: yes
-  md_extensions: ""
-  latex_engine: "xelatex"
+    sharing:
+      facebook: no
+      twitter: yes
+      google: no
+      linkedin: yes
+      weibo: no
+      instapaper: no
+      vk: no
+      all:
+      - facebook
+      - google
+      - twitter
+      - linkedin
+      - weibo
+      - instapaper
+      - vk
+  css:
+  - "includes/r4ds.css"
+  - "includes/r4ds-solutions.css"
+  - "includes/ort.css"
+  md_extensions: "+native_divs+native_spans+escaped_line_breaks+smart"
+  download: no
   includes:
-    in_header: "r4ds.tex"
+    in_header:
+    - "includes/google-analytics.html"
+    - "includes/hypothesis.html"
+    before_body:
+    - "includes/open-review.html"

@@ -1,76 +1,63 @@
 set.seed(1014)
 options(digits = 3)
 
-.nojekyll <- here::here("docs", ".nojekyll")
-if (!file.exists(.nojekyll)) {
-  close(open(file(.nojekyll, "w")))
-}
-
 knitr::opts_chunk$set(
   comment = "#>",
   collapse = TRUE,
   cache = TRUE,
   autodep = TRUE,
+  # need to save cache
+  cache.extra = knitr::rand_seed,
   out.width = "70%",
-  fig.align = 'center',
+  fig.align = "center",
   fig.width = 6,
-  fig.asp = 0.618,  # 1 / phi
-  fig.show = "hold"
+  fig.asp = 0.618, # 1 / phi
+  fig.show = "hold",
+  # styler
+  tidy = 'styler'
 )
 
 options(dplyr.print_min = 6, dplyr.print_max = 6)
 
 is_html <- knitr::opts_knit$get("rmarkdown.pandoc.to") == "html"
 
-# keep track of the current state
-STATE <- NULL
+# Info and useful links
+SOURCE_URL <- stringr::str_c("https:/", "github.com", "jrnold",
+  "r4ds-exercise-solutions",
+  sep = "/"
+)
+PUB_URL <- stringr::str_c("http:/", "jrnold.github.io",
+  "r4ds-exercise-solutions",
+  sep = "/"
+)
 
-BeginQuestion <- function() {
-  if (!is.null(STATE)) {
-    message(glue::glue("Starting Question block when STATE = {STATE}"))
-    stop()
-  }
-  STATE <<- "Question"
-  if (is_html) {
-    "<div class='question'>"
-  } else {
-    # "\\begin{question}"
-  }
-}
-EndQuestion <- function() {
-  if (is.null(STATE) || !STATE %in% "Question") {
-    message(glue::glue("Ending Question block when STATE = {STATE}"))
-    stop()
-  }
-  STATE <<- NULL
-  if (is_html) {
-    "</div>"
-  } else {
-    # "\\end{question}"
-  }
+R4DS_URL <- "http://r4ds.had.co.nz"
+
+r4ds_url <- function(...) {
+  stringr::str_c(R4DS_URL, ..., sep = "/")
 }
 
-BeginAnswer <- function() {
-  if (!is.null(STATE)) {
-    message(glue::glue("Starting Answer block when STATE = {STATE}"))
-    stop()
-  }
-  STATE <<- "Answer"
-  if (is_html) {
-    "<div class='answer'>"
-  } else {
-    # "\\begin{answer}"
-  }
+comma_int <- function(x) {
+  prettyNum(x, big.interval = 3, big.mark = ",")
 }
-EndAnswer <- function() {
-  if (is.null(STATE) || !STATE %in% "Answer") {
-    message(glue::glue("Ending Answer block when STATE = {STATE}"))
-    stop()
-  }
-  STATE <<- NULL
-  if (is_html) {
-    "</div>"
-  } else {
-    # "\\end{answer}"
-  }
+
+rdoc_url <- function(name, package) {
+  glue::glue("https://www.rdocumentation.org/packages/{package}/topics/{name}")
+}
+
+no_exercises <- function() {
+  tags <- htmltools::tags
+  tags$div(
+    class = 'alert alert-warning hints-alert',
+    tags$div(
+      class = "hints-icon",
+      tags$i(
+        class = "fa fa-exclamation-circle"
+      )
+    ),
+    tags$div(
+      class = "hints-container",
+      "No exercises"
+    )
+  )
 }

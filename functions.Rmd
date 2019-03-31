@@ -1,59 +1,66 @@
-# Functions
+# Functions {#functions .r4ds-section}
 
-## Introduction
+## Introduction {#introduction-12 .r4ds-section}
 
 ```{r message=FALSE}
 library("tidyverse")
 library("lubridate")
 ```
 
+## When should you write a function? {#when-should-you-write-a-function .r4ds-section}
 
-## When should you write a function?
+### Exercise 19.2.1 {.unnumbered .exercise data-number="19.2.1"}
 
+<div class="question">
 
-### Exercise 1 {.exercise} 
-
-
-`r BeginQuestion()`
-
-Why is TRUE not a parameter to `rescale01()`? 
+Why is `TRUE` not a parameter to `rescale01()`?
 What would happen if `x` contained a single missing value, and `na.rm` was `FALSE`?
 
-`r EndQuestion()`
+</div>
 
-`r BeginAnswer()`
+<div class="answer">
 
-First, note that by a a single missing value, this means that the vector `x` has at least one element equal to `NA`.
-
-If there were any `NA` values, and `na.rm = FALSE`, then the function would 
-return `NA`.
-
-I can confirm this by testing a function that allows for `na.rm` as an argument,
+The code for `rescale01()` is reproduced below.
 ```{r}
-rescale01_alt <- function(x, finite = TRUE) {
-  rng <- range(x, na.rm = finite, finite = finite)
+rescale01 <- function(x) {
+  rng <- range(x, na.rm = TRUE, finite = TRUE)
   (x - rng[1]) / (rng[2] - rng[1])
 }
-rescale01_alt(c(NA, 1:5), finite = FALSE)
-rescale01_alt(c(NA, 1:5), finite = TRUE)
 ```
 
-`r EndAnswer()`
+If `x` contains a single missing value and `na.rm = FALSE`, then this function stills return a non-missing value.
+```{r}
+rescale01_alt <- function(x, na.rm = FALSE) {
+  rng <- range(x, na.rm = na.rm, finite = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+rescale01_alt(c(NA, 1:5), na.rm = FALSE)
+rescale01_alt(c(NA, 1:5), na.rm = TRUE)
+```
+The option `finite = TRUE` to `range()` will drop all non-finite elements, and `NA` is a non-finite element.
 
+However, if both `finite = FALSE` and `na.rm = FALSE`, then this function will return a vector of `NA` values.
+Recall, arithmetic operations involving `NA` values return `NA`.
+```{r}
+rescale01_alt2 <- function(x, na.rm = FALSE, finite = FALSE) {
+  rng <- range(x, na.rm = na.rm, finite = finite)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+rescale01_alt2(c(NA, 1:5), na.rm = FALSE, finite = FALSE)
+```
 
+</div>
 
-### Exercise 2 {.exercise}
+### Exercise 19.2.2 {.unnumbered .exercise data-number="19.2.2"}
 
+<div class="question">
 
-`r BeginQuestion()`
+In the second variant of `rescale01()`, infinite values are left unchanged.
+Rewrite `rescale01()` so that `-Inf` is mapped to `0`, and `Inf` is mapped to `1`.
 
-In the second variant of `rescale01()`, infinite values are left unchanged. 
-Rewrite `rescale01()` so that `-Inf` is mapped to 0, and `Inf` is mapped to 1.
+</div>
 
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
+<div class="answer">
 
 ```{r}
 rescale01 <- function(x) {
@@ -67,17 +74,13 @@ rescale01 <- function(x) {
 rescale01(c(Inf, -Inf, 0:5, NA))
 ```
 
-`r EndAnswer()`
+</div>
 
-### Exercise 3 {.exercise}
+### Exercise 19.2.3 {.unnumbered .exercise data-number="19.2.3"}
 
-`r BeginQuestion()`
+<div class="question">
 
- Practice turning the following code snippets into functions. Think about what each function does. What would you call it? How many arguments does it need? Can you rewrite it to be more expressive or less duplicative?
- 
-`r EndQuestion()`
- 
-`r BeginAnswer()`
+Practice turning the following code snippets into functions. Think about what each function does. What would you call it? How many arguments does it need? Can you rewrite it to be more expressive or less duplicative?
 
 ```{r eval=FALSE}
 mean(is.na(x))
@@ -87,170 +90,205 @@ x / sum(x, na.rm = TRUE)
 sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)
 ```
 
+</div>
 
-This function calculates the proportion of `NA` values in a vector,
+<div class="answer">
+
+This code calculates the proportion of `NA` values in a vector.
+```{r eval=FALSE}
+mean(is.na(x))
+```
+I will write it as a function named `prop_na()` that takes a single argument `x`,
+and returns a single numeric value between 0 and 1.
 ```{r}
 prop_na <- function(x) {
   mean(is.na(x))
 }
-prop_na(c(NA, 0, NA, 0, NA))
+prop_na(c(0, 1, 2, NA, 4, NA))
 ```
 
-This function standardizes a function to its weight. If all elements of `x` are non-negative, this will ensure the vector sums to 1. 
+This code standardizes a vector so that it sums to one.
+```{r eval=FALSE}
+x / sum(x, na.rm = TRUE)
+```
+I'll write a function named `sum_to_one()`, which is a function of a single argument, `x`, the vector to standardize, and an optional argument `na.rm`.
+The optional argument, `na.rm`, makes the function more expressive, since it can
+handle `NA` values in two ways (returning `NA` or dropping them).
+Additionally, this makes `sum_to_one()` consistent with `sum()`, `mean()`, and many
+other R functions which have a `na.rm` argument.
+While the example code had `na.rm = TRUE`, I set `na.rm = FALSE` by default
+in order to make the function behave the same as the built-in functions like `sum()` and `mean()` in its handling of missing values.
 ```{r}
-weights <- function(x) {
-  x / sum(x, na.rm = TRUE)
+sum_to_one <- function(x, na.rm = FALSE) {
+  x / sum(x, na.rm = na.rm)
 }
-y <- weights(0:5)
-y
-sum(y)
 ```
 
-This function calculates the [coefficient of variation](https://en.wikipedia.org/wiki/Coefficient_of_variation) (assuming that `x` can only take non-negative values). 
-The coefficient of variation is the standard deviation divided by the mean
 ```{r}
-coef_variation <- function(x) {
-  sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)
-}
-coef_variation(runif(10))
+# no missing values
+sum_to_one(1:5)
+# if any missing, return all missing
+sum_to_one(c(1:5, NA))
+# drop missing values when standardizing
+sum_to_one(c(1:5, NA), na.rm = TRUE)
 ```
 
-`r EndAnswer()`
+This code calculates the [coefficient of variation](https://en.wikipedia.org/wiki/Coefficient_of_variation) (assuming that `x` can only take non-negative values), which is the standard deviation divided by the mean.
+```{r eval=FALSE}
+sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)
+```
+I'll write a function named `coef_variation()`, which takes a single argument `x`,
+and an optional `na.rm` argument.
+```{r}
+coef_variation <- function(x, na.rm = FALSE) {
+  sd(x, na.rm = na.rm) / mean(x, na.rm = na.rm)
+}
+coef_variation(1:5)
+coef_variation(c(1:5, NA))
+coef_variation(c(1:5, NA), na.rm = TRUE)
+```
 
-### Exercise 4
+</div>
 
+### Exercise 19.2.4 {.unnumbered .exercise data-number="19.2.4"}
 
-`r BeginQuestion()`
+<div class="question">
 
 Follow <http://nicercode.github.io/intro/writing-functions.html> to write your own functions to compute the variance and skew of a numeric vector.
 
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
+**Note** The math in <https://nicercode.github.io/intro/writing-functions.html> seems not to be rendering.
 
-**Note** The math in <https://nicercode.github.io/intro/writing-functions.html> seems not to be rendering, but I'll write functions for the variance and skewness.
-
-The sample variance is defined as 
+The sample variance is defined as,
 $$
-Var(x) = \frac{1}{n - 1} \sum_{i=1}^n (x_i - \bar{x}) ^2
+\mathrm{Var}(x) = \frac{1}{n - 1} \sum_{i=1}^n (x_i - \bar{x}) ^2 \text{,}
 $$
-where the sample mean is $\bar{x} = (\sum x_i) / n$.
-```{r}
-variance <- function(x) {
-  # remove missing values
-  x <- x[!is.na(x)]
+where $\bar{x} = (\sum_i^n x_i) / n$ is the sample mean.
+The corresponding function is:
+```{r variance}
+variance <- function(x, na.rm = TRUE) {
   n <- length(x)
-  m <- mean(x)
-  sq_err <- (x - m) ^ 2
+  m <- mean(x, na.rm = TRUE)
+  sq_err <- (x - m)^2
   sum(sq_err) / (n - 1)
 }
+```
+```{r}
 var(1:10)
 variance(1:10)
 ```
 
-There are multiple definitions of [skewness](https://en.wikipedia.org/wiki/Skewness), but I'll use the method of moments estimator of the population skewness,
+There are multiple definitions for [skewness](https://en.wikipedia.org/wiki/Skewness), but we will use the following one,
 $$
-b_1 =  \frac{m_3}{s^3} = \frac{\frac{1}{n} \sum (x_i - \bar{x}) ^ 3}{{\left(\frac{1}{n - 1} \sum (x_i - \bar{x}) ^ 2\right)} ^ \frac{3}{2}}
+\mathrm{Skew}(x) = \frac{\frac{1}{n - 2}\left(\sum_{i=1}^{n}(x_{i} - \bar x)^3\right)}{\mathrm{Var}(x)^{3 / 2}} \text{.}
 $$
-```{r}
-skewness <- function(x) {
-  x <- x[!is.na(x)] 
+
+The corresponding function is:
+```{r skewness}
+skewness <- function(x, na.rm = FALSE) {
   n <- length(x)
-  m <- mean(x)
-  m3 <- sum((x - m) ^ 3) / n
-  s3 <- sqrt(sum((x - m) ^ 2) / (n - 1))
-  m3 / s3
+  m <- mean(x, na.rm = na.rm)
+  v <- var(x, na.rm = na.rm)
+  (sum(x - m) ^ 3 / (n - 2)) / v ^ (3 / 2)
 }
-skewness(rgamma(10, 1, 1))
+```
+```{r}
+skewness(c(1, 2, 5, 100))
 ```
 
-`r EndAnswer()`
+</div>
 
-#### Exercise 5 {.exercise}
+### Exercise 19.2.5 {.unnumbered .exercise data-number="19.2.5"}
 
-`r BeginQuestion()`
+<div class="question">
 
 Write `both_na()`, a function that takes two vectors of the same length and returns the number of positions that have an `NA` in both vectors.
 
-`r EndQuestion()`
+</div>
 
-`r BeginAnswer()`
+<div class="answer">
 
 ```{r}
 both_na <- function(x, y) {
   sum(is.na(x) & is.na(y))
 }
-both_na(c(NA, NA,  1, 2),
-        c(NA,  1, NA, 2))
-both_na(c(NA, NA,  1, 2, NA, NA, 1), 
-        c(NA,  1, NA, 2, NA, NA, 1))
+both_na(
+  c(NA, NA, 1, 2),
+  c(NA, 1, NA, 2)
+)
+both_na(
+  c(NA, NA, 1, 2, NA, NA, 1),
+  c(NA, 1, NA, 2, NA, NA, 1)
+)
 ```
 
-`r EndAnswer()`
+</div>
 
-### Exercise 6 {.exercise}
+### Exercise 19.2.6 {.unnumbered .exercise data-number="19.2.6"}
 
-
-`r BeginQuestion()`
+<div class="question">
 What do the following functions do? Why are they useful even though they are so short?
-`r EndQuestion()`
+</div>
 
-
-`r BeginAnswer()`
+<div class="answer">
 
 ```{r}
 is_directory <- function(x) file.info(x)$isdir
 is_readable <- function(x) file.access(x, 4) == 0
 ```
 
-The function `is_directory` checks whether the path in `x` is a directory.
-The function `is_readable` checks whether the path in `x` is readable, meaning that the file exists and the user has permission to open it.
+The function `is_directory()` checks whether the path in `x` is a directory.
+The function `is_readable()` checks whether the path in `x` is readable, meaning that the file exists and the user has permission to open it.
 These functions are useful even though they are short because their names make it much clearer what the code is doing.
 
-`r EndAnswer()`
+</div>
 
-### Exercise 7 {.exercise}
+### Exercise 19.2.7 {.unnumbered .exercise data-number="19.2.7"}
 
-`r BeginQuestion()`
+<div class="question">
 
 Read the complete lyrics to ``Little Bunny Foo Foo''. There’s a lot of duplication in this song. Extend the initial piping example to recreate the complete song, and use functions to reduce the duplication.
 
-`r EndQuestion()`
+</div>
 
-`r BeginAnswer()`
+<div class="answer">
 The lyrics of one of the [most common versions](https://en.wikipedia.org/wiki/Little_Bunny_Foo_Foo) of this song are
 
-Little bunny Foo Foo
-Hopping through the forest
-Scooping up the field mice
-And bopping them on the head
-
-Down came the Good Fairy, and she said
-"Little bunny Foo Foo
-I don't want to see you
-Scooping up the field mice
-
-And bopping them on the head.
-I'll give you three chances,
-And if you don't stop, I'll turn you into a GOON!"
-And the next day...
+> Little bunny Foo Foo \
+> Hopping through the forest \
+> Scooping up the field mice \
+> And bopping them on the head
+>
+> Down came the Good Fairy, and she said \
+> "Little bunny Foo Foo \
+> I don't want to see you \  
+> Scooping up the field mice
+>
+> And bopping them on the head. \
+> I'll give you three chances, \
+> And if you don't stop, I'll turn you into a GOON!" \
+> And the next day...
 
 The verses repeat with one chance fewer each time.
 When there are no chances left, the Good Fairy says
 
-> "I gave you three chances, and you didn't stop; so...."
-> POOF. She turned him into a GOON!
+> "I gave you three chances, and you didn't stop; so...." \
+> POOF. She turned him into a GOON! \
 > And the moral of this story is: *hare today, goon tomorrow.*
 
 Here's one way of writing this
-```r
+```{r eval=FALSE}
 threat <- function(chances) {
-  give_chances(from = Good_Fairy,
-               to = foo_foo,
-               number = chances,
-               condition = "Don't behave",
-               consequence = turn_into_goon)  
+  give_chances(
+    from = Good_Fairy,
+    to = foo_foo,
+    number = chances,
+    condition = "Don't behave",
+    consequence = turn_into_goon
+  )
 }
 
 lyric <- function() {
@@ -258,13 +296,17 @@ lyric <- function() {
     hop(through = forest) %>%
     scoop(up = field_mouse) %>%
     bop(on = head)
-  
+
   down_came(Good_Fairy)
-  said(Good_Fairy, 
-      c("Little bunny Foo Foo",
-        "I don't want to see you",
-        "Scooping up the field mice",
-        "And bopping them on the head.")
+  said(
+    Good_Fairy,
+    c(
+      "Little bunny Foo Foo",
+      "I don't want to see you",
+      "Scooping up the field mice",
+      "And bopping them on the head."
+    )
+  )
 }
 
 lyric()
@@ -275,24 +317,16 @@ lyric()
 threat(1)
 lyric()
 turn_into_goon(Good_Fairy, foo_foo)
-             
 ```
 
+</div>
 
-`r EndAnswer()`
+## Functions are for humans and computers {#functions-are-for-humans-and-computers .r4ds-section}
 
-## Functions are for humans and computers
+### Exercise 19.3.1 {.unnumbered .exercise data-number="19.3.1"}
 
-
-### Exercise 1 {.exercise}
-
-
-`r BeginQuestion()`
+<div class="question">
 Read the source code for each of the following three functions, puzzle out what they do, and then brainstorm better names.
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
 
 ```{r}
 f1 <- function(string, prefix) {
@@ -309,13 +343,18 @@ f3 <- function(x, y) {
 }
 ```
 
-The function `f1` returns whether a function has a common prefix.
+</div>
+
+<div class="answer">
+
+The function `f1` tests whether each element of the character vector `nchar`
+starts with the string `prefix`. For example,
 ```{r}
-f1(c("str_c", "str_foo", "abc"), "str_")
+f1(c("abc", "abcde", "ad"), "ab")
 ```
 A better name for `f1` is `has_prefix()`
 
-The function `f2` drops the last element
+The function `f2` drops the last element of the vector `x`.
 ```{r}
 f2(1:3)
 f2(1:2)
@@ -327,94 +366,92 @@ The function `f3` repeats `y` once for each element of `x`.
 ```{r}
 f3(1:3, 4)
 ```
-This is a harder one to name. I would say something like `recycle` (R's name for this behavior), or `epxand`.
+Good names would include `recycle()` (R's name for this behavior) or `expand()`.
 
-`r EndAnswer()`
+</div>
 
-### Exercise 2 {.exercise}
+### Exercise 19.3.2 {.unnumbered .exercise data-number="19.3.2"}
 
-
-`r BeginQuestion()`
+<div class="question">
 Take a function that you’ve written recently and spend 5 minutes brainstorming a better name for it and its arguments.
-`r EndQuestion()`
+</div>
 
-
-`r BeginAnswer()`
+<div class="answer">
 
 Answer left to the reader.
 
-`r EndAnswer()`
+</div>
 
-### Exercise 3 {.exercise}
+### Exercise 19.3.3 {.unnumbered .exercise data-number="19.3.3"}
 
-
-`r BeginQuestion()`
+<div class="question">
 Compare and contrast `rnorm()` and `MASS::mvrnorm()`. How could you make them more consistent?
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
+`rnorm()` samples from the univariate normal distribution, while `MASS::mvrnorm`
+samples from the multivariate normal distribution. The main arguments in
+`rnorm()` are `n`, `mean`, `sd`. The main arguments is `MASS::mvrnorm` are `n`,
+`mu`, `Sigma`. To be consistent they should have the same names. However, this
+is difficult. In general, it is better to be consistent with more widely used
+functions, e.g. `rmvnorm()` should follow the conventions of `rnorm()`. However,
+while `mean` is correct in the multivariate case, `sd` does not make sense in
+the multivariate case. However, both functions are internally consistent.
+It would not be good practice to have `mu` and `sd` as arguments or `mean` and `Sigma` as arguments.
 
-*You can ignore*
+</div>
 
-`rnorm` samples from the univariate normal distribution, while `MASS::mvrnorm` samples from the multivariate normal distribution.
-The main arguments in `rnorm` are `n`, `mean`, `sd`.
-The main arguments is `MASS::mvrnorm` are `n`, `mu`, `Sigma`. 
-To be consistent they should have the same names.
-However, this is difficult. 
-In general, it is better to be consistent with more widely used functions, e.g. `rmvnorm` should follow the conventions of `rnorm`. 
-However, while `mean` is correct in the multivariate case, `sd` does not make sense in the multivariate case. 
-Both functions an internally consistent though; it would be bad to have `mu` and `sd` or `mean` and `Sigma`.
+### Exercise 19.3.4 {.unnumbered .exercise data-number="19.3.4"}
 
-`r EndAnswer()`
-
-### Exercise 4 {.exercise}
-
-
-`r BeginQuestion()`
+<div class="question">
 Make a case for why `norm_r()`, `norm_d()` etc would be better than `rnorm()`, `dnorm()`. Make a case for the opposite.
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
+If named `norm_r()` and `norm_d()`, the naming convention groups functions by their
+distribution.
 
-If named `norm_r` and `norm_d`, it groups the family of functions related to the normal distribution.
-If named `rnorm`, and `dnorm`, functions related to are grouped into families by the action they perform. `r*` functions always sample from distributions: `rnorm`, `rbinom`, `runif`, `rexp`. `d*` functions calculate the probability density or mass of a distribution: `dnorm`, `dbinom`, `dunif`, `dexp`.
+If named `rnorm()`, and `dnorm()`, the naming convention groups functions
+by the action they perform.
 
+-   `r*` functions always sample from distributions: for example,
+    `rnorm()`, `rbinom()`, `runif()`, and `rexp()`.
 
-`r EndAnswer()`
+-   `d*` functions calculate the probability density or mass of a distribution: 
+    For example, `dnorm()`, `dbinom()`, `dunif()`, and `dexp()`.
+    
+R distributions use this latter naming convention.
 
-## Conditional execution
+</div>
 
-### Exercise 1 {.exercise} 
+## Conditional execution {#conditional-execution .r4ds-section}
 
+### Exercise 19.4.1 {.unnumbered .exercise data-number="19.4.1"}
 
-`r BeginQuestion()`
+<div class="question">
 What’s the difference between `if` and `ifelse()`? > Carefully read the help and construct three examples that illustrate the key differences.
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
+The keyword `if` tests a single condition, while `ifelse()` tests each element.
 
-The keyword `if` tests a single condition, while `ifelse` tests each element.
+</div>
 
+### Exercise 19.4.2 {.unnumbered .exercise data-number="19.4.2"}
 
-`r EndAnswer()`
-
-### Exercise 2 {.exercise}
-
-
-`r BeginQuestion()`
+<div class="question">
 Write a greeting function that says “good morning”, “good afternoon”, or “good evening”, depending on the time of day. (Hint: use a time argument that defaults to `lubridate::now()`. That will make it easier to test your function.)
-`r EndQuestion()`
+</div>
 
-
-`r BeginAnswer()`
+<div class="answer">
 
 ```{r}
 greet <- function(time = lubridate::now()) {
-  hr <- hour(time)
-  # I don't know what to do about times after midnight, 
+  hr <- lubridate::hour(time)
+  # I don't know what to do about times after midnight,
   # are they evening or morning?
   if (hr < 12) {
     print("good morning")
@@ -423,24 +460,28 @@ greet <- function(time = lubridate::now()) {
   } else {
     print("good evening")
   }
-} 
+}
 greet()
 greet(ymd_h("2017-01-08:05"))
 greet(ymd_h("2017-01-08:13"))
 greet(ymd_h("2017-01-08:20"))
 ```
 
-`r EndAnswer()`
+</div>
 
-### Exercise 3 {.exercise}
+### Exercise 19.4.3 {.unnumbered .exercise data-number="19.4.3"}
 
+<div class="question">
 
-`r BeginQuestion()`
-Implement a `fizzbuzz` function. It takes a single number as input. If the number is divisible by three, it returns “fizz”. If it’s divisible by five it returns “buzz”. If it’s divisible by three and five, it returns “fizzbuzz”. Otherwise, it returns the number. Make sure you first write working code before you create the function.
-`r EndQuestion()`
+Implement a `fizzbuzz()` function. It takes a single number as input. If the
+number is divisible by three, it returns “fizz”. If it’s divisible by five it
+returns “buzz”. If it’s divisible by three and five, it returns “fizzbuzz”.
+Otherwise, it returns the number. Make sure you first write working code before
+you create the function.
 
+</div>
 
-`r BeginAnswer()`
+<div class="answer">
 
 ```{r}
 fizzbuzz <- function(x) {
@@ -448,12 +489,14 @@ fizzbuzz <- function(x) {
   stopifnot(is.numeric(x))
   # this could be made more efficient by minimizing the
   # number of tests
-  if (!(x %% 3) & !(x %% 5)) {
-    print("fizzbuzz")
+  if (!(x %% 3) && !(x %% 5)) {
+    "fizzbuzz"
   } else if (!(x %% 3)) {
-    print("fizz")
+    "fizz"
   } else if (!(x %% 5)) {
-    print("buzz")
+    "buzz"
+  } else {
+    x
   }
 }
 fizzbuzz(6)
@@ -462,17 +505,15 @@ fizzbuzz(15)
 fizzbuzz(2)
 ```
 
-`r EndAnswer()`
+</div>
 
-### Exercise 4 {.exercise}
+### Exercise 19.4.4 {.unnumbered .exercise data-number="19.4.4"}
 
-
-`r BeginQuestion()`
+<div class="question">
 How could you use `cut()` to simplify this set of nested if-else statements?
-`r EndQuestion()`
+</div>
 
-
-`r BeginAnswer()`
+<div class="answer">
 
 ```{r eval=FALSE}
 if (temp <= 0) {
@@ -491,72 +532,85 @@ How would you change the call to `cut()` if I’d used `<` instead of `<=`? What
 
 ```{r}
 temp <- seq(-10, 50, by = 5)
-cut(temp, c(-Inf, 0, 10, 20, 30, Inf), right = TRUE,
-    labels = c("freezing", "cold", "cool", "warm", "hot"))
+cut(temp, c(-Inf, 0, 10, 20, 30, Inf),
+  right = TRUE,
+  labels = c("freezing", "cold", "cool", "warm", "hot")
+)
 ```
 
 To have intervals open on the left (using `<`), I change the argument to `right = FALSE`,
 ```{r}
 temp <- seq(-10, 50, by = 5)
-cut(temp, c(-Inf, 0, 10, 20, 30, Inf), right = FALSE,
-    labels = c("freezing", "cold", "cool", "warm", "hot"))
+cut(temp, c(-Inf, 0, 10, 20, 30, Inf),
+  right = FALSE,
+  labels = c("freezing", "cold", "cool", "warm", "hot")
+)
 ```
 
 Two advantages of using `cut` is that it works on vectors, whereas `if` only works on a single value (I already demonstrated this above),
 and that to change comparisons I only needed to change the argument to `right`, but I would have had to change four operators in the `if` expression.
 
-`r EndAnswer()`
+</div>
 
-### Exercise 5 {.exercise}
+### Exercise 19.4.5 {.unnumbered .exercise data-number="19.4.5"}
 
-
-`r BeginQuestion()`
+<div class="question">
 
 What happens if you use `switch()` with numeric values?
 
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
-
-It selects that number argument from `...`.
-
+In `switch(n, ...)`, if `n` is numeric, it will return the `n`th argument from `...`.
+This means that if `n = 1`, `switch()` will return the first argument in `...`,
+if `n = 2`, the second, and so on.
+For example,
 ```{r}
-switch(2, "one", "two", "three")
+switch(1, "apple", "banana", "cantaloupe")
+switch(2, "apple", "banana", "cantaloupe")
 ```
 
-
-`r EndAnswer()`
-
-### Exercise 6 {.exercise}
-
-
-`r BeginQuestion()`
-What does this `switch()` call do? What happens if `x` is `"e"`?
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
-
-It will return the `"ab"` for `a` or `b`, `"cd"` for `c` or `d`, an `NULL` for `e`. It returns the first non-missing value for the first name it matches.
+If you use a non-integer number for the first argument of `switch()`, it will
+ignore the non-integer part.
 ```{r}
+switch(1.2, "apple", "banana", "cantaloupe")
+switch(2.8, "apple", "banana", "cantaloupe")
+```
+Note that `switch()` truncates the numeric value, it does not round to the nearest integer.
+While it is possible to use non-integer numbers with `switch()`, you should avoid it
+
+</div>
+
+### Exercise 19.4.6 {.unnumbered .exercise data-number="19.4.6"}
+
+<div class="question">
+What does this `switch()` call do? What happens if `x` is `"e"`?
+
+```{r eval=FALSE}
 x <- "e"
-switch(x, 
+switch(x,
   a = ,
   b = "ab",
   c = ,
   d = "cd"
 )
 ```
+
 Experiment, then carefully read the documentation.
 
+</div>
+
+<div class="answer">
+
+First, let's write a function `switcheroo()`, and see what it returns for different values of `x`.
 ```{r}
 switcheroo <- function(x) {
-  switch(x, 
-  a = ,
-  b = "ab",
-  c = ,
-  d = "cd"
+  switch(x,
+    a = ,
+    b = "ab",
+    c = ,
+    d = "cd"
   )
 }
 switcheroo("a")
@@ -564,24 +618,46 @@ switcheroo("b")
 switcheroo("c")
 switcheroo("d")
 switcheroo("e")
+switcheroo("f")
 ```
 
-`r EndAnswer()`
+The `switcheroo()` function returns `"ab"` for `x = "a"` or `x = "b"`,
+`"cd"` for `x = "c"` or `x = "d"`, and
+`NULL` for `x = "e"` or any other value of `x` not in `c("a", "b", "c", "d")`.
 
-## Function arguments
+How does this work?
+The `switch()` function returns the first non-missing argument value for the first name it matches.
+Thus, when `switch()` encounters an argument with a missing value, like `a = ,`,
+it will return the value of the next argument with a non missing value, which in this case is `b = "ab"`.
+If `object` in `switch(object=)` is not equal to the names of any of its arguments,
+`switch()` will return either the last (unnamed) argument if one is present or `NULL`.
+Since `"e"` is not one of the named arguments in `switch()` (`a`, `b`, `c`, `d`),
+and no other unnamed default value is present, this code will return `NULL`.
 
+The code in the question is shorter way of writing the following.
+```{r eval=FALSE}
+switch(x,
+  a = "ab",
+  b = "ab",
+  c = "cd",
+  d = "cd",
+  NULL # value to return if x not matched
+)
+```
 
-### Exercise 1 {.exercise}
+</div>
 
+## Function arguments {#function-arguments .r4ds-section}
 
-`r BeginQuestion()`
+### Exercise 19.5.1 {.unnumbered .exercise data-number="19.5.1"}
+
+<div class="question">
 What does `commas(letters, collapse = "-")` do? Why?
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
-
-The `commas` function in the chapter is defined as
+The `commas()` function in the chapter is defined as
 ```{r}
 commas <- function(...) {
   stringr::str_c(..., collapse = ", ")
@@ -592,15 +668,15 @@ When `commas()` is given a collapse argument, it throws an error.
 ```{r error=TRUE}
 commas(letters, collapse = "-")
 ```
-This is because when the argument `collapse` is given to `commas`, it 
-is passed to `str_c` as part of `...`.
+This is because when the argument `collapse` is given to `commas()`, it
+is passed to `str_c()` as part of `...`.
 In other words, the previous code is equivalent to
 ```{r eval=FALSE}
 str_c(letters, collapse = "-", collapse = ", ")
 ```
 However, it is an error to give the same named argument to a function twice.
 
-One way to allow the user to override the separator in `commas` is to add a `collapse`
+One way to allow the user to override the separator in `commas()` is to add a `collapse`
 argument to the function.
 ```{r}
 commas <- function(..., collapse = ", ") {
@@ -608,23 +684,20 @@ commas <- function(..., collapse = ", ") {
 }
 ```
 
+</div>
 
+### Exercise 19.5.2 {.unnumbered .exercise data-number="19.5.2"}
 
-`r EndAnswer()`
+<div class="question">
 
-### Exercise 2 {.exercise}
-
-
-`r BeginQuestion()`
-
-It’d be nice if you could supply multiple characters to the pad argument, e.g. `rule("Title", pad = "-+")`. 
+It’d be nice if you could supply multiple characters to the `pad` argument, e.g. `rule("Title", pad = "-+")`.
 Why doesn’t this currently work? How could you fix it?
 
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
-
+This is the definition of the rule function from the [chapter](http://r4ds.had.co.nz/functions.html).
 ```{r}
 rule <- function(..., pad = "-") {
   title <- paste0(...)
@@ -632,66 +705,72 @@ rule <- function(..., pad = "-") {
   cat(title, " ", stringr::str_dup(pad, width), "\n", sep = "")
 }
 ```
-
 ```{r}
 rule("Important output")
-rule("Important output", pad = "-+")
 ```
-It does not work because it duplicates pad by the width minus the length of the string.
-This is implicitly assuming that pad is only one character.
-I could adjust the code to calculate the length of pad.
-The trickiest part is handling what to do if width is not a multiple of the number of characters of `pad`.
 
+You can currently supply multiple characters to the `pad` argument, but the output is
+will not be the desired width. The `rule()` function duplicates `pad` a number of times
+equal to the desired width minus the length of the title and five extra characters.
+This implicitly assumes that `pad` is only one character. If `pad` were two character,
+the output will be almost twice as long.
+```{r}
+rule("Valuable output", pad = "-+")
+```
+
+One way to handle this is to use `stringr::str_trunc()` to truncate the string,
+and `stringr::str_length()` to calculate the number of characters in the `pad` argument.
 ```{r}
 rule <- function(..., pad = "-") {
   title <- paste0(...)
   width <- getOption("width") - nchar(title) - 5
-  padchar <- nchar(pad)
-  cat(title, " ",
-      stringr::str_dup(pad, width %/% padchar),
-      # if not multiple, fill in the remaining characters
-      stringr::str_sub(pad, 1, width %% padchar),
-      "\n", sep = "")
+  padding <- stringr::str_dup(
+    pad,
+    ceiling(width / stringr::str_length(title))
+  ) %>%
+    stringr::str_trunc(width)
+  cat(title, " ", padding, "\n", sep = "")
 }
 rule("Important output")
-rule("Important output", pad = "-+")
-rule("Important output", pad = "-+-")
+rule("Valuable output", pad = "-+")
+rule("Vital output", pad = "-+-")
 ```
 
-`r EndAnswer()`
+Note that in the second output, there is only a single `-` at the end.
 
-### Exercise 3 {.exercise}
+</div>
 
+### Exercise 19.5.3 {.unnumbered .exercise data-number="19.5.3"}
 
-`r BeginQuestion()`
+<div class="question">
 What does the `trim` argument to `mean()` do? When might you use it?
-`r EndQuestion()`
+</div>
 
-
-`r BeginAnswer()`
+<div class="answer">
 
 The `trim` arguments trims a fraction of observations from each end of the vector (meaning the range) before calculating the mean.
 This is useful for calculating a measure of central tendency that is robust to outliers.
 
-`r EndAnswer()`
+</div>
 
-### Exercise 4 {.exercise}
+### Exercise 19.5.4 {.unnumbered .exercise data-number="19.5.4"}
 
-
-`r BeginQuestion()`
-The default value for the `method` argument to `cor()` is `c("pearson", "kendall", "spearman")`. 
+<div class="question">
+The default value for the `method` argument to `cor()` is `c("pearson", "kendall", "spearman")`.
 What does that mean? What value is used by default?
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
-
-It means that the `method` argument can take one of those three values. 
+It means that the `method` argument can take one of those three values.
 The first value, `"pearson"`, is used by default.
 
-`r EndAnswer()`
+</div>
 
-## Environment 
+## Return values {#return-values .r4ds-section}
 
-No Exercises
+`r no_exercises()`
 
+## Environment {#environment .r4ds-section}
+
+`r no_exercises()`

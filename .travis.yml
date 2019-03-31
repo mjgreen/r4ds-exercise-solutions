@@ -1,0 +1,47 @@
+language: R
+pandoc: 2.5
+
+git:
+  depth: false
+  quiet: true
+
+cache:
+  packages: true
+  directories:
+  - "_build"
+  -  "_bookdown_files"
+
+addons:
+  apt:
+    packages:
+      - libxml2-dev
+
+before_script:
+  - npm install
+
+script:
+  - ./bin/build.sh
+
+after_success:
+  - npm test
+  - Rscript ./bin/check-spelling.R
+  - Rscript ./bin/check-r4ds-sections.R
+
+deploy:
+  provider: pages
+  local-dir: "_build"
+  skip-cleanup: true
+  github-token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
+  keep-history: false
+  on:
+    branch: master
+
+after_deploy:
+  - npm run blc
+
+notifications:
+  email: false
+
+branches:
+  except:
+  - gh-pages

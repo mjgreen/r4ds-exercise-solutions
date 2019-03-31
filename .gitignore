@@ -17,6 +17,10 @@ figures
 *.utf8.md
 /*.md
 !README.md
+!NEWS.md
+
+# ignore bookdown cache
+/bookdown[0-9a-f]*
 
 *.aux
 *.out
@@ -25,7 +29,13 @@ figures
 *.log
 *.fdb_latexmk
 _bookdown_files
-libs
-bookdown4def523aea53
 .ipynb_checkpoints
 *.rds
+node_modules
+Rplots.pdf
+*.bib.sav
+_build
+*.bak
+.drake
+/cache
+/figure

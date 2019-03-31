@@ -1,40 +1,45 @@
 ---
 output: html_document
-editor_options: 
+editor_options:
   chunk_output_type: console
 ---
 
-# Workflow: scripts
+# Workflow: scripts {#workflow-scripts .r4ds-section}
 
+## Exercise 6.1 {.unnumbered .exercise data-number="6.1"}
 
-## Running code
+<div class="question">
 
-No exercises
+Go to the RStudio Tips twitter account, <https://twitter.com/rstudiotips> and find one tip that looks interesting. 
+Practice using it!
 
-## RStudio diagnostics
+</div>
 
-No exercises
+<div class="answer">
 
-## Practice
+The current timeline of [\@rstudiotips](https://twitter.com/rstudiotips) is displayed below.
 
-### Exercise 1 {.exercise} 
+<a class="twitter-timeline" href="https://twitter.com/rstudiotips?ref_src=twsrc%5Etfw"> Tweets by rstudiotips</a> 
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
-`r BeginQuestion()`
-Go to the RStudio Tips twitter account, https://twitter.com/rstudiotips and find one tip that looks interesting. Practice using it!
-`r EndQuestion()`
+</div>
 
-This is by its very nature left to the reader.
+## Exercise 6.2 {.unnumbered .exercise data-number="6.2"}
 
-### Exercise 2 {.exercise} 
+<div class="question">
 
-`r BeginQuestion()`
-What other common mistakes will RStudio diagnostics report? 
+What other common mistakes will RStudio diagnostics report?
 Read <https://support.rstudio.com/hc/en-us/articles/205753617-Code-Diagnostics> to find out.
-`r EndQuestion()`
 
-The user should read that help page. However, to preview its contents, some other diagnostics for R code include:
+</div>
 
-1. Check for Missing, unmatched, partially matched, and too many arguments to functions
-2. Warn if a variable is not defined
-3. Warn if a variable is defined but not used
-4. Style diagnostics to ensure the code conforms to the [tidyverse style guide](http://adv-r.had.co.nz/Style.html).
+<div class="answer">
+
+You should read that page, but some other diagnostics for R code include the following.
+
+1.  Check for missing, unmatched, partially matched, and too many arguments to functions.
+1.  Warn if a variable is not defined.
+1.  Warn if a variable is defined but not used.
+1.  Check that the code style conforms to the [tidyverse style guide](http://adv-r.had.co.nz/Style.html).
+
+</div>

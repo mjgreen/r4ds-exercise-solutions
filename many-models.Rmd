@@ -1,21 +1,29 @@
-# Many Models
+# Many models {#many-models .r4ds-section}
 
+## Introduction {#introduction-17 .r4ds-section}
 
-## Introduction
-
-```{r}
+```{r message=FALSE}
 library("modelr")
 library("tidyverse")
 library("gapminder")
 ```
 
-## Gapminder
+## gapminder {#gapminder .r4ds-section}
 
-### Exercise 1 {.exercise} 
+### Exercise 25.2.1 {.unnumbered .exercise data-number="25.2.1"}
 
-A linear trend seems to be slightly too simple for the overall trend. Can you do better with a quadratic polynomial? How can you interpret the coefficients of the quadratic? (Hint you might want to transform year so that it has mean zero.)
+<div class="question">
 
-The following code replicates the analysis in the chapter but the function `country_model` is replaced with a regression that includes the year squared.
+A linear trend seems to be slightly too simple for the overall trend. 
+Can you do better with a quadratic polynomial? 
+How can you interpret the coefficients of the quadratic? 
+Hint you might want to transform year so that it has mean zero.)
+
+</div>
+
+<div class="answer">
+
+The following code replicates the analysis in the chapter but replaces the function `country_model()` with a regression that includes the year squared.
 ```{r, eval = FALSE}
 lifeExp ~ poly(year, 2)
 ```
@@ -25,8 +33,8 @@ country_model <- function(df) {
   lm(lifeExp ~ poly(year - median(year), 2), data = df)
 }
 
-by_country <- gapminder %>% 
-  group_by(country, continent) %>% 
+by_country <- gapminder %>%
+  group_by(country, continent) %>%
   nest()
 
 by_country <- by_country %>%
@@ -34,7 +42,7 @@ by_country <- by_country %>%
 ```
 
 ```{r}
-by_country <- by_country %>% 
+by_country <- by_country %>%
   mutate(
     resids = map2(data, model, add_residuals)
   )
@@ -43,92 +51,139 @@ by_country
 
 ```{r}
 unnest(by_country, resids) %>%
-ggplot(aes(year, resid)) +
-  geom_line(aes(group = country), alpha = 1 / 3) + 
+  ggplot(aes(year, resid)) +
+  geom_line(aes(group = country), alpha = 1 / 3) +
   geom_smooth(se = FALSE)
 ```
 
 ```{r}
-by_country %>% 
+by_country %>%
   mutate(glance = map(model, broom::glance)) %>%
   unnest(glance, .drop = TRUE) %>%
   ggplot(aes(continent, r.squared)) +
   geom_jitter(width = 0.5)
 ```
 
-#### Exercise 2
+</div>
 
+### Exercise 25.2.2 {.unnumbered .exercise data-number="25.2.2"}
 
+<div class="question">
+Explore other methods for visualizing the distribution of $R^2$ per continent. 
+You might want to try the ggbeeswarm package, which provides similar methods for avoiding overlaps as jitter, but uses deterministic methods.
 
-`r BeginQuestion()`
-Explore other methods for visualizing the distribution of $R^2$ per continent. You might want to try the **ggbeeswarm** package, which provides similar methods for avoiding overlaps as jitter, but uses deterministic methods.
-`r EndQuestion()`
+</div>
 
+<div class="answer">
 
-`r BeginAnswer()`
-
-See exercise 7.5.1.1.6 for more on **ggbeeswarm**
+See exercise 7.5.1.1.6 for more on ggbeeswarm
 
 ```{r}
 library("ggbeeswarm")
-by_country %>% 
+by_country %>%
   mutate(glance = map(model, broom::glance)) %>%
   unnest(glance, .drop = TRUE) %>%
   ggplot(aes(continent, r.squared)) +
   geom_beeswarm()
 ```
 
-`r EndAnswer()`
+</div>
 
-## Creating list-columns
+### Exercise 25.2.3 {.unnumbered .exercise data-number="25.2.3"}
 
-### Exercises
+<div class="question">
 
-#### Exercise 1 {.exercise}
+To create the last plot (showing the data for the countries with the worst model fits),
+we needed two steps:
+we created a data frame with one row per country 
+and then semi-joined it to the original dataset. 
+It’s possible to avoid this join if we use `unnest()` instead of `unnest(.drop = TRUE)`.
+How?
 
+</div>
 
-`r BeginQuestion()`
-List all the functions that you can think of that take a atomic vector and return a list.
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
-
-E.g. Many of the **stringr** functions.
-
-`r EndAnswer()`
-
-#### Exercise 2 {.exercise}
-
-
-`r BeginQuestion()`
-Brainstorm useful summary functions that, like `quantile()`, return multiple values.
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
-
-Some examples of summary functions that return multiple values are `range` and `fivenum`.
-
-
-`r EndAnswer()`
-
-#### Exercise 3 {.exercise}
-
-
-`r BeginQuestion()`
-What’s missing in the following data frame? How does `quantile()` return that missing piece? Why isn’t that helpful here?
-`r EndQuestion()`
-
-
-`r BeginAnswer()`
+<div class="answer">
 
 ```{r}
-mtcars %>% 
-  group_by(cyl) %>% 
-  summarise(q = list(quantile(mpg))) %>% 
+gapminder %>%
+  group_by(country, continent) %>%
+  nest() %>%
+  mutate(model = map(data, ~lm(lifeExp ~ year, .))) %>%
+  mutate(glance = map(model, broom::glance)) %>%
+  unnest(glance) %>%
+  unnest(data) %>%
+  filter(r.squared < 0.25) %>%
+  ggplot(aes(year, lifeExp)) +
+  geom_line(aes(color = country))
+```
+
+</div>
+
+## List-columns {#list-columns-1 .r4ds-section}
+
+`r no_exercises()`
+
+## Creating list-columns {#creating-list-columns .r4ds-section}
+
+### Exercise 25.4.1 {.unnumbered .exercise data-number="25.4.1"}
+
+<div class="question">
+
+List all the functions that you can think of that take a atomic vector and return a list.
+
+</div>
+
+<div class="answer">
+
+Many functions in the stringr package take a character vector as input and return a list.
+```{r}
+str_split(sentences[1:3], " ")
+str_match_all(c("abc", "aa", "aabaa", "abbbc"), "a+")
+```
+The `map()` function takes a vector and always returns a list.
+```{r}
+map(1:3, runif)
+```
+
+</div>
+
+### Exercise 25.4.2 {.unnumbered .exercise data-number="25.4.2"}
+
+<div class="question">
+
+Brainstorm useful summary functions that, like `quantile()`, return multiple values.
+
+</div>
+
+<div class="answer">
+
+Some examples of summary functions that return multiple values are the following.
+```{r}
+range(mtcars$mpg)
+fivenum(mtcars$mpg)
+boxplot.stats(mtcars$mpg)
+```
+
+</div>
+
+### Exercise 25.4.3 {.unnumbered .exercise data-number="25.4.3"}
+
+<div class="question">
+
+What’s missing in the following data frame? 
+How does `quantile()` return that missing piece? 
+Why isn’t that helpful here?
+
+```{r}
+mtcars %>%
+  group_by(cyl) %>%
+  summarise(q = list(quantile(mpg))) %>%
   unnest()
 ```
+
+</div>
+
+<div class="answer">
 
 The particular quantiles of the values are missing, e.g. `0%`, `25%`, `50%`, `75%`, `100%`. `quantile()` returns these in the names of the vector.
 ```{r}
@@ -137,73 +192,81 @@ quantile(mtcars$mpg)
 
 Since the `unnest` function drops the names of the vector, they aren't useful here.
 
-`r EndAnswer()`
+</div>
 
-#### Exercise 4 {.exercise}
+### Exercise 25.4.4 {.unnumbered .exercise data-number="25.4.4"}
 
+<div class="question">
 
-`r BeginQuestion()`
-What does this code do? 
+What does this code do?
 Why might might it be useful?
-`r EndQuestion()`
 
-
-`r BeginAnswer()`
-
-```{r}
-mtcars %>% 
-  group_by(cyl) %>% 
+```r
+mtcars %>%
+  group_by(cyl) %>%
   summarise_each(funs(list))
 ```
 
-It creates a data frame in which each row corresponds to a value of `cyl`, 
-and each observation for each column (other than `cyl`) is a vector of all the values of that column for that value of `cyl`. 
+</div>
+
+<div class="answer">
+
+```{r}
+mtcars %>%
+  group_by(cyl) %>%
+  summarise_each(funs(list))
+```
+
+It creates a data frame in which each row corresponds to a value of `cyl`,
+and each observation for each column (other than `cyl`) is a vector of all the values of that column for that value of `cyl`.
 It seems like it should be useful to have all the observations of each variable for each group, but off the top of my head, I can't think of a specific use for this.
 But, it seems that it may do many things that `dplyr::do` does.
 
-`r EndAnswer()`
+</div>
 
-## Simplifying list-columns
+## Simplifying list-columns {#simplifying-list-columns .r4ds-section}
 
+### Exercise 25.5.1 {.unnumbered .exercise data-number="25.5.1"}
 
-### Exercises
+<div class="question">
 
-#### Exercise 1 {.exercise}
-
-
-`r BeginQuestion()`
 Why might the `lengths()` function be useful for creating atomic vector columns from list-columns?
-`r EndQuestion()`
 
+</div>
 
-`r BeginAnswer()`
+<div class="answer">
 
-The `lengths()` function gets the lengths of each element in a list.
+The `lengths()` function returns the lengths of each element in a list.
 It could be useful for testing whether all elements in a list-column are the same length.
 You could get the maximum length to determine how many atomic vector columns to create.
 It is also a replacement for something like `map_int(x, length)` or `sapply(x, length)`.
 
-`r EndAnswer()`
+</div>
 
-#### Exercise 2 {.exercise}
+### Exercise 25.5.2 {.unnumbered .exercise data-number="25.5.2"}
 
+<div class="question">
 
-`r BeginQuestion()`
-List the most common types of vector found in a data frame. 
+List the most common types of vector found in a data frame.
 What makes lists different?
-`r EndQuestion()`
 
+</div>
 
-`r BeginAnswer()`
+<div class="answer">
 
 The common types of vectors in data frames are:
 
-- `logical`
-- `numeric`
-- `integer`
-- `character`
-- `factor`
+-   `logical`
+-   `numeric`
+-   `integer`
+-   `character`
+-   `factor`
 
-All of the common types of vectors in data frames are atomic. Lists are not atomic (they can contain other lists and other vectors).
-`r EndAnswer()`
+All of the common types of vectors in data frames are atomic. 
+Lists are not atomic since they can contain other lists and other vectors.
 
+</div>
+
+## Making tidy data with broom {#making-tidy-data-with-broom .r4ds-section}
+
+`r no_exercises()`

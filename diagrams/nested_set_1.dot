@@ -1,0 +1,22 @@
+digraph nested_set_1 {
+  node[shape=box]
+  graph[style=rounded]
+  # subgraph for R information
+  subgraph cluster_abcdef {
+    node[style=filled,fillcolor=gray90]
+    "b"
+    "a"
+    subgraph cluster_ef {
+      graph[fillcolor=gray90,style="rounded,filled"]
+      node[fillcolor=gray80]
+      "f"
+      "e"
+    }
+    subgraph cluster_cd {
+      graph[fillcolor=gray90,style="rounded,filled"]
+      node[fillcolor=gray80]
+      "d"
+      "c"
+    }
+  }
+}
