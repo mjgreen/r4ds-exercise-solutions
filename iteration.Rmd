@@ -6,10 +6,40 @@
 library("tidyverse")
 library("stringr")
 ```
-The package microbenchmark is used for timing code
-```{r}
+The package microbenchmark is used for timing code.
+```{r message=FALSE}
 library("microbenchmark")
 ```
+
+<div class="alert alert-warning hints-alert">
+
+The `map()` function appears in both the purrr and maps packages. See the
+"Prerequisites" section of the [Introduction](https://r4ds.had.co.nz/data-visualisation.html#introduction-1).
+If you see errors like the following, you are using the wrong `map()` function.
+
+```rconsole
+> map(c(TRUE, FALSE, TRUE), ~ !.)
+Error: $ operator is invalid for atomic vectors
+> map(-2:2, rnorm, n = 5)
+Error in map(-2:2, rnorm, n = 5) : 
+argument 3 matches multiple formal arguments
+```
+
+You can check the package in which a function is defined using the `environment()` function:
+
+```{r}
+environment(map)
+```
+
+The result should include `namespace:purrr` if `map()` is coming from the purrr package.
+To explicitly reference the package to get a function from, use the colon operator `::`.
+For example,
+
+```{r}
+purrr::map(c(TRUE, FALSE, TRUE), ~ !.)
+```
+
+</div>
 
 ## For loops {#for-loops .r4ds-section}
 
@@ -97,14 +127,14 @@ Eliminate the for loop in each of the following examples by taking advantage of 
 ```{r}
 out <- ""
 for (x in letters) {
-  out <- stringr::str_c(out, x)
+  out <- str_c(out, x)
 }
 out
 ```
 
 Since `str_c()` already works with vectors, use `str_c()` with the `collapse` argument to return a single string.
 ```{r}
-stringr::str_c(letters, collapse = "")
+str_c(letters, collapse = "")
 ```
 
 For this I'm going to rename the variable `sd` to something different because `sd` is the name of the function we want to use.
@@ -166,7 +196,7 @@ Combine your function writing and for loop skills:
 
 The answers to each part follow.
 
-1.  The lyrics for [Alice the Camel](http://www.kididdles.com/lyrics/a012.html) are:
+1.  The lyrics for [Alice the Camel](https://www.kididdles.com/lyrics/a012.html) are:
 
     > Alice the camel has five humps. \
     > Alice the camel has five humps. \
@@ -246,28 +276,31 @@ The answers to each part follow.
     For the bottles of beer, I define a helper function to correctly print the number of bottles.
 
     ```{r}
-    bottles <- function(i) {
-      if (i > 2) {
-        bottles <- str_c(i - 1, " bottles")
-      } else if (i == 2) {
-        bottles <- "1 bottle"
+    bottles <- function(n) {
+      if (n > 1) {
+        str_c(n, " bottles")
+      } else if (n == 1) {
+        "1 bottle"
       } else {
-        bottles <- "no more bottles"
+        "no more bottles"
       }
-      bottles
     }
 
-    beer_bottles <- function(n) {
-      # should test whether n >= 1.
-      for (i in seq(n, 1)) {
-        cat(str_c(bottles(i), " of beer on the wall, ", bottles(i), " of beer.\n"))
-        cat(str_c(
-          "Take one down and pass it around, ", bottles(i - 1),
-          " of beer on the wall.\n\n"
-        ))
+    beer_bottles <- function(total_bottles) {
+      # print each lyric
+      for (current_bottles in seq(total_bottles, 0)) {
+        # first line
+        cat(str_to_sentence(str_c(bottles(current_bottles), " of beer on the wall, ", bottles(current_bottles), " of beer.\n")))   
+        # second line
+        if (current_bottles > 0) {
+          cat(str_c(
+            "Take one down and pass it around, ", bottles(current_bottles - 1),
+            " of beer on the wall.\n"
+          ))          
+        } else {
+          cat(str_c("Go to the store and buy some more, ", bottles(total_bottles), " of beer on the wall.\n"))                }
+        cat("\n")
       }
-      cat("No more bottles of beer on the wall, no more bottles of beer.\n")
-      cat(str_c("Go to the store and buy some more, ", bottles(n), " of beer on the wall.\n"))
     }
     beer_bottles(3)
     ```
@@ -293,10 +326,10 @@ Design and execute an experiment.
 
 <div class="answer">
 
-I'll use the package microbenchmark to time this.
-The `microbenchmark()` function will run an R expression a number of times and time it.
+In order to compare these two approaches, I'll define two functions:
+`add_to_vector` will append to a vector, like the example in the question,
+and `add_to_vector_2` which pre-allocates a vector.
 
-Define a function that appends to an integer vector.
 ```{r}
 add_to_vector <- function(n) {
   output <- vector("integer", 0)
@@ -305,10 +338,9 @@ add_to_vector <- function(n) {
   }
   output
 }
-microbenchmark(add_to_vector(10000), times = 3)
+
 ```
 
-And one that pre-allocates it.
 ```{r}
 add_to_vector_2 <- function(n) {
   output <- vector("integer", n)
@@ -317,11 +349,23 @@ add_to_vector_2 <- function(n) {
   }
   output
 }
-microbenchmark(add_to_vector_2(10000), times = 3)
 ```
 
-The pre-allocated vector is about **10** times faster!
-You may get different answers, but the longer the vector and the bigger the objects, the more that pre-allocation will outperform appending.
+I'll use the package microbenchmark to run these functions several times and compare the time it takes.
+The package microbenchmark contains utilities for benchmarking R expressions.
+In particular, the `microbenchmark()` function will run an R expression a number of times and time it.
+```{r}
+timings <- microbenchmark(add_to_vector(10000), add_to_vector_2(10000), times = 10)
+timings
+```
+
+```{r include=FALSE}
+timings_summary <- summary(timings)
+d <- round(timings_summary[1, "median"] / timings_summary[2, "median"])
+```
+
+In this example, appending to a vector takes `r round(d)` times longer than pre-allocating the vector.
+You may get different answers, but the longer the vector and the larger the objects, the more that pre-allocation will outperform appending.
 
 </div>
 
@@ -340,15 +384,42 @@ load them into a single data frame.
 
 <div class="answer">
 
-First, I pre-allocate a list. Then, I read each file into a data frame, and assign it to an element in that list.
+```{r}
+files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)
+files
+```
+
+Since, the number of files is known, pre-allocate a list with a length equal to the number of files.
+```{r}
+df_list <- vector("list", length(files))
+```
+
+Then, read each file into a data frame, and assign it to an element in that list.
 The result is a list of data frames.
-I then use `bind_rows()` to combine the list of data frames into a single data frame.
-```{r eval = FALSE}
-df <- vector("list", length(files))
-for (fname in seq_along(files)) {
-  df[[i]] <- read_csv(files[[i]])
+```{r}
+for (i in seq_along(files)) {
+  df_list[[i]] <- read_csv(files[[i]])
 }
-df <- bind_rows(df)
+```
+```{r}
+print(df_list)
+```
+Finally, use use `bind_rows()` to combine the list of data frames into a single data frame.
+```{r}
+df <- bind_rows(df_list)
+```
+```{r}
+print(df)
+```
+
+Alternatively, I could have pre-allocated a list with the names of the files.
+```{r}
+df2_list <- vector("list", length(files))
+names(df2_list) <- files
+for (fname in files) {
+  df2_list[[fname]] <- read_csv(fname)
+}
+df2 <- bind_rows(df2_list)
 ```
 
 </div>
@@ -364,10 +435,10 @@ What if the names are not unique?
 <div class="answer">
 
 Let's try it out and see what happens.
-
-When there are no names for the vector, it does not run the code in the loop (it runs zero iterations of the loop):
+When there are no names for the vector, it does not run the code in the loop.
+In other words, it runs zero iterations of the loop.
 ```{r}
-x <- 1:3
+x <- c(11, 12, 13)
 print(names(x))
 for (nm in names(x)) {
   print(nm)
@@ -379,10 +450,9 @@ Note that the length of `NULL` is zero:
 length(NULL)
 ```
 
-If there only some names, then we get an error if we try to access an element without a name.
-However, oddly, `nm == ""` when there is no name.
+If there only some names, then we get an error for trying to access an element without a name.
 ```{r}
-x <- c(a = 1, 2, c = 3)
+x <- c(a = 11, 12, c = 13)
 names(x)
 ```
 ```{r error = TRUE}
@@ -392,10 +462,9 @@ for (nm in names(x)) {
 }
 ```
 
-Finally, if there are duplicate names, then `x[[nm]]` will give the *first* element with that name.
-There is no way to access elements with duplicate names.
+Finally, if the vector contains duplicate names, then `x[[nm]]` returns the *first* element with that name.
 ```{r}
-x <- c(a = 1, a = 2, c = 3)
+x <- c(a = 11, a = 12, c = 13)
 names(x)
 ```
 ```{r}
@@ -539,7 +608,7 @@ apply(X, 2, mean)
 ```{r}
 X_col_means <- vector("numeric", length = ncol(X))
 for (i in seq_len(ncol(X))) {
-  X_col_means[[i]] <- mean(X[i, ])
+  X_col_means[[i]] <- mean(X[, i])
 }
 X_col_means
 ```
@@ -634,7 +703,7 @@ Write code that uses one of the map functions to:
     ```
 
 1.  To calculate the type of every column in `nycflights13::flights` apply
-    the function `typeof()`, discussed in the section on [Vector basics](http://r4ds.had.co.nz/vectors.html#vector-basics),
+    the function `typeof()`, discussed in the section on [Vector basics](https://r4ds.had.co.nz/vectors.html#vector-basics),
     and use `map_chr()`, since the results are character.
     ```{r}
     map_chr(nycflights13::flights, typeof)
@@ -684,7 +753,6 @@ How can you create a single vector that for each column in a data frame indicate
 
 The function `is.factor()` indicates whether a vector is a factor.
 ```{r}
-is.factor(diamonds$color)
 is.factor(diamonds$color)
 ```
 To check all columns in a factor for whether it is a factor is a job for a `map_*()` function.
@@ -767,10 +835,10 @@ The reason for this strictness is that `map_dbl()` guarantees that it will retur
 This concept applies to the other `map_*()` functions.
 The function `map_chr()` requires that the function always return a *character* vector of length one;
 `map_int()` requires that the function always return an *integer* vector of length one;
-`map_lglg()` requires that the function always return an *logical* vector of length one.
+`map_lgl()` requires that the function always return an *logical* vector of length one.
 Use the `map()` function if the function will return values of varying types or lengths.
 
-If we wanted a numeric vector, we could use `map()` followed by `flatten_dbl()`,
+To return a double vector,  we could use `map()` followed by `flatten_dbl()`,
 ```{r}
 flatten_dbl(map(-2:2, rnorm, n = 5))
 ```

@@ -3,7 +3,7 @@
 ## Introduction {#introduction-6 .r4ds-section}
 
 ```{r message=FALSE}
-library(tidyverse)
+library("tidyverse")
 ```
 
 ## Tidy data {#tidy-data-1 .r4ds-section}
@@ -341,8 +341,8 @@ preg_tidy2 <- preg %>%
 preg_tidy2
 ```
 
-This an example of turning an explicit missing value into an implicit missing value, which is discussed in the upcoming [Missing Values](http://r4ds.had.co.nz/tidy-data.html#missing-values-3) section.
-The missing (male, pregnant) row represents is an implicit missing value because the missing value of `count` can be inferred from its absence.
+This an example of turning an explicit missing value into an implicit missing value, which is discussed in the upcoming [Missing Values](https://r4ds.had.co.nz/tidy-data.html#missing-values-3) section.
+The missing (male, pregnant) row represents an implicit missing value because the value of `count` can be inferred from its absence.
 In the tidy data, we can represent rows with missing values of `count` either explicitly with an `NA` (as in `preg_tidy`) or implicitly by the absence of a row (as in `preg_tidy2`). 
 But in the wide data, the missing values can only be represented explicitly.
 
@@ -544,7 +544,7 @@ glimpse(who1)
 
 ```{r}
 who2 <- who1 %>%
-  mutate(key = stringr::str_replace(key, "newrel", "new_rel"))
+  mutate(key = str_replace(key, "newrel", "new_rel"))
 ```
 
 ```{r}
@@ -599,9 +599,9 @@ who1 %>%
   filter(cases == 0) %>%
   nrow()
 ```
-There are zeros in the data, so it appears that cases of zero TB cases are explicitly indicated, and `NA` is used to indicate missing data.
+There are zeros in the data, so it appears that cases of zero TB are explicitly indicated, and the value of`NA` is used to indicate missing data.
 
-Second, I should check whether all values for a (country, year) are missing or whether it is possible for only some values to be missing.
+Second, I should check whether all values for a (country, year) are missing or whether it is possible for only some columns to be missing.
 ```{r}
 gather(who, new_sp_m014:newrel_f65, key = "key", value = "cases") %>%
   group_by(country, year) %>%
@@ -609,7 +609,7 @@ gather(who, new_sp_m014:newrel_f65, key = "key", value = "cases") %>%
   filter(prop_missing > 0, prop_missing < 1)
 
 ```
-It looks like it is possible for certain variables to missing for (country, years).
+From the results above, it looks like it is possible for a (country, year) row to contain some, but not all, missing values in its columns.
 
 Finally, I will check for implicit missing values. 
 Implicit missing values are (`year`, `country`) combinations that do not appear in the data.
@@ -646,7 +646,7 @@ To summarize:
 <div class="question">
 
 What happens if you neglect the `mutate()` step? 
-(`mutate(key = stringr::str_replace(key, "newrel", "new_rel")`)
+(`mutate(key = str_replace(key, "newrel", "new_rel")`)
 
 </div>
 
@@ -686,8 +686,8 @@ select(who3, country, iso2, iso3) %>%
 ```
 
 This makes sense, since `iso2` and `iso3` contain the 2- and 3-letter country abbreviations for the country.
-The `iso2` variable contains each country's [ISO 3166 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2), and the `iso3` variable contains the each country's [ISO 3166 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) abbreviation.
-You may recognize the ISO 3166-2 abbreviations, since they are almost identical to internet [country-code top level domains](https://en.wikipedia.org/wiki/Country_code_top-level_domain), such as `.uk`.
+The `iso2` variable contains each country's [ISO 3166 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2), and the `iso3` variable contains each country's [ISO 3166 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) abbreviation.
+You may recognize the ISO 3166-2 abbreviations, since they are almost identical to internet [country-code top level domains](https://en.wikipedia.org/wiki/Country_code_top-level_domain), such as `.uk` (United Kingdom), `.ly` (Libya), `.tv` (Tuvalu), and `.io` (British Indian Ocean Territory).
 
 </div>
 

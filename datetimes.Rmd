@@ -3,9 +3,9 @@
 ## Introduction {#introduction-10 .r4ds-section}
 
 ```{r message=FALSE}
-library(tidyverse)
-library(lubridate)
-library(nycflights13)
+library("tidyverse")
+library("lubridate")
+library("nycflights13")
 ```
 
 ## Creating date/times {#creating-datetimes .r4ds-section}
@@ -227,16 +227,35 @@ On what day of the week should you leave if you want to minimize the chance of a
 
 <div class="answer">
 
-Sunday has the lowest average departure delay time and the lowest average arrival delay time.
+Saturday has the lowest average departure delay time and the lowest average arrival delay time.
 
-```{r}
+```{r 16.3.5.tbl}
 flights_dt %>%
   mutate(dow = wday(sched_dep_time)) %>%
   group_by(dow) %>%
   summarise(
     dep_delay = mean(dep_delay),
     arr_delay = mean(arr_delay, na.rm = TRUE)
-  )
+  ) %>%
+  print(n = Inf)
+```
+
+```{r 16.3.5.fig1}
+flights_dt %>%
+  mutate(wday = wday(dep_time, label = TRUE)) %>% 
+  group_by(wday) %>% 
+  summarize(ave_dep_delay = mean(dep_delay, na.rm = TRUE)) %>% 
+  ggplot(aes(x = wday, y = ave_dep_delay)) + 
+  geom_bar(stat = "identity")
+```
+
+```{r 16.3.5.fig2}
+flights_dt %>% 
+  mutate(wday = wday(dep_time, label = TRUE)) %>% 
+  group_by(wday) %>% 
+  summarize(ave_arr_delay = mean(arr_delay, na.rm = TRUE)) %>% 
+  ggplot(aes(x = wday, y = ave_arr_delay)) + 
+  geom_bar(stat = "identity")
 ```
 
 </div>
@@ -284,31 +303,19 @@ Hint: create a binary variable that tells you whether or not a flight was delaye
 
 <div class="answer">
 
-At the minute level, there doesn't appear to be anything:
+First, I create a binary variable `early` that is equal to 1 if a flight leaves early, and 0 if it does not.
+Then, I group flights by the minute of departure.
+This shows that the proportion of flights that are early departures is highest between minutes 20--30 and 50--60.
 ```{r}
-flights_dt %>%
-  mutate(
-    early = dep_delay < 0,
-    minute = minute(sched_dep_time)
-  ) %>%
-  group_by(minute) %>%
-  summarise(early = mean(early)) %>%
-  ggplot(aes(x = minute, y = early)) +
-  geom_point()
-```
-
-But if grouped in 10 minute intervals, there is a higher proportion of early flights during those minutes.
-
-```{r}
-flights_dt %>%
-  mutate(
-    early = dep_delay < 0,
-    minute = minute(sched_dep_time) %% 10
-  ) %>%
-  group_by(minute) %>%
-  summarise(early = mean(early)) %>%
-  ggplot(aes(x = minute, y = early)) +
-  geom_point()
+flights_dt %>% 
+  mutate(minute = minute(dep_time),
+         early = dep_delay < 0) %>% 
+  group_by(minute) %>% 
+  summarise(
+    early = mean(early, na.rm = TRUE),
+    n = n()) %>% 
+  ggplot(aes(minute, early)) +
+    geom_line()
 ```
 
 </div>
@@ -413,9 +420,7 @@ So, I will assume that that the correct code is,
 While this code will not display a warning or message, it does not work exactly as
 expected. The problem is discussed in the [Intervals](https://r4ds.had.co.nz/dates-and-times.html#intervals) section.
 
-The numerator of the expression, `(today() %--% (today() + years(1))`, is an *interval*, which 
-as a duration of time along with a starting point. The interval has an exact number of
-seconds.
+The numerator of the expression, `(today() %--% (today() + years(1))`, is an *interval*, which includes both a duration of time and a starting point. The interval has an exact number of seconds.
 The denominator of the expression, `months(1)`, is a period, which is meaningful to humans but not defined in terms of an exact number of seconds.
 Months can be 28, 29, 30, or 31 days, so it is not clear what `months(1)` divide by?
 The code does not produce a warning message, but it will not always produce the correct result.
@@ -425,12 +430,12 @@ To find the number of months within an interval use `%/%` instead of `/`,
 (today() %--% (today() + years(1))) %/% months(1)
 ```
 
-Alternatively, you could define a "month" as 30 days, and run
+Alternatively, we could define a "month" as 30 days, and run
 ```{r}
 (today() %--% (today() + years(1))) / days(30)
 ```
 
-There's one other minor  way in which this will not work is that `today() + years(1)` is not defined for February 29th on leap years:
+This approach will not work with `today() + years(1)`, which is not defined for February 29th on leap years:
 ```{r}
 as.Date("2016-02-29") + years(1)
 ```

@@ -2,7 +2,7 @@
 
 ## Introduction {#introduction-19 .r4ds-section}
 
-```{r message=FALSE}
+```{r message=FALSE,cache=FALSE}
 library("tidyverse")
 library("modelr")
 library("lubridate")
@@ -22,7 +22,7 @@ Create one plot on the fuel economy data with customized `title`,
 ```{r}
 ggplot(
   data = mpg,
-  mapping = aes(x = forcats::fct_reorder(class, hwy), y = hwy)
+  mapping = aes(x = fct_reorder(class, hwy), y = hwy)
 ) +
   geom_boxplot() +
   coord_flip() +
@@ -105,8 +105,8 @@ mpg %>%
     title = "Engine size has little effect on fuel efficiency",
     subtitle = "After accounting for car class",
     caption = "Data from fueleconomy.gov",
-    x = "Highway MPG Relative to Class Average",
-    y = "Engine Displacement"
+    y = "Highway MPG Relative to Class Average",
+    x = "Engine Displacement"
   )
 ```
 
@@ -225,7 +225,7 @@ label <- tibble(
   displ = Inf,
   hwy = Inf,
   class = unique(mpg$class),
-  label = stringr::str_c("Label for ", class)
+  label = str_c("Label for ", class)
 )
 
 ggplot(mpg, aes(displ, hwy)) +
@@ -262,7 +262,7 @@ Create a series of plots that demonstrate the most important options.
 
 <div class="answer">
 
-The four arguments are: (from the help for [arrow](https://www.rdocumentation.org/packages/grid/versions/3.3.2/topics/arrow))
+The four arguments are (from the help for `arrow()`):
 
 -   `angle` : angle of arrow head
 -   `length` : length of the arrow head
@@ -358,7 +358,7 @@ fouryears <- lubridate::make_date(seq(year(min(presidential$start)),
 presidential %>%
   mutate(
     id = 33 + row_number(),
-    name_id = forcats::fct_inorder(stringr::str_c(name, " (", id, ")"))
+    name_id = fct_inorder(str_c(name, " (", id, ")"))
   ) %>%
   ggplot(aes(start, name_id, colour = party)) +
   geom_point() +

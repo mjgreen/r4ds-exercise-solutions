@@ -26,12 +26,12 @@ SOURCE_URL <- stringr::str_c("https:/", "github.com", "jrnold",
   "r4ds-exercise-solutions",
   sep = "/"
 )
-PUB_URL <- stringr::str_c("http:/", "jrnold.github.io",
+PUB_URL <- stringr::str_c("https:/", "jrnold.github.io",
   "r4ds-exercise-solutions",
   sep = "/"
 )
 
-R4DS_URL <- "http://r4ds.had.co.nz"
+R4DS_URL <- "https://r4ds.had.co.nz"
 
 r4ds_url <- function(...) {
   stringr::str_c(R4DS_URL, ..., sep = "/")
@@ -39,10 +39,6 @@ r4ds_url <- function(...) {
 
 comma_int <- function(x) {
   prettyNum(x, big.interval = 3, big.mark = ",")
-}
-
-rdoc_url <- function(name, package) {
-  glue::glue("https://www.rdocumentation.org/packages/{package}/topics/{name}")
 }
 
 no_exercises <- function() {

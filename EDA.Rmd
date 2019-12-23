@@ -10,11 +10,16 @@ editor_options:
 ```{r message=FALSE}
 library("tidyverse")
 library("viridis")
-library("forcats")
 ```
-This will also use data from nycflights13.
-```{r}
+This will also use data from the nycflights13 package.
+```{r message=FALSE}
 library("nycflights13")
+```
+These additional package provide functions that will be used in answering some questions.
+```{r message=FALSE}
+library("ggbeeswarm")
+library("lvplot")
+library("ggstance")
 ```
 
 ## Questions {#questions .r4ds-section}
@@ -32,44 +37,116 @@ Think about a diamond and how you might decide which dimension is the length, wi
 
 <div class="answer">
 
-In order to make it easier to plot them, I'll reshape the dataset so that I can use the variables as facets.
+First, I'll calculate summary statistics for these variables and plot their distributions.
+```{r}
+summary(select(diamonds, x, y, z))
+```
+```{r}
+ggplot(diamonds) +
+  geom_histogram(mapping = aes(x = x), binwidth = 0.01)
+```
+```{r}
+ggplot(diamonds) +
+  geom_histogram(mapping = aes(x = y), binwidth = 0.01)
+```
+```{r}
+ggplot(diamonds) +
+  geom_histogram(mapping = aes(x = z), binwidth = 0.01)
+```
+
+There several noticeable features of the distributions:
+
+1.  `x` and `y` are larger than `z`,
+1.  there are outliers,
+1.  they are all right skewed, and
+1.  they are multimodal or "spiky".
+
+The typical values of `x` and `y` are larger than `z`, with `x` and `y` having inter-quartile 
+ranges of 4.7-5.7, while `z` has an inter-quartile range of 2.9-4.0.
+
+There are two types of outliers in this data.
+Some diamonds have values of zero and some have abnormally large values of `x`, `y`, or `z`.
+```{r}
+summary(select(diamonds, x, y, z))
+```
+These appear to be either data entry errors, or an undocumented convention in the dataset for indicating missing values.  An alternative hypothesis would be that values of zero are the
+result of rounding values like `0.002` down, but since there are no diamonds with values of 0.01, that does not seem to be the case.
+```{r}
+filter(diamonds, x == 0 | y == 0 | z == 0)
+```
+
+There are also some diamonds with values of `y` and `z` that are abnormally large.
+There are diamonds with `y == 58.9` and `y == 31.8`, and one with `z == 31.8`. 
+These are probably data errors since the values do not seem in line with the values of 
+the other variables.
 ```{r}
 diamonds %>%
-  mutate(id = row_number()) %>%
-  select(x, y, z, id) %>%
-  gather(variable, value, -id) %>%
-  ggplot(aes(x = value)) +
-  geom_density() +
-  geom_rug() +
-  facet_grid(variable ~ .)
+  arrange(desc(y)) %>%
+  head()
+```
+```{r}
+diamonds %>%
+  arrange(desc(z)) %>%
+  head()
 ```
 
-There several noticeable features of the distributions
+Initially, I only considered univariate outliers. However, to check the plausibility
+of those outliers I would informally consider how consistent their values are with
+the values of the other variables. In this case, scatter plots of each combination
+of `x`, `y`, and `z` shows these outliers much more clearly.
+```{r}
+ggplot(diamonds, aes(x = x, y = y)) +
+  geom_point()
+```
+```{r}
+ggplot(diamonds, aes(x = x, y = z)) +
+  geom_point()
+```
+```{r}
+ggplot(diamonds, aes(x = y, y = z)) +
+  geom_point()
+```
 
-1.  They are right skewed, with most diamonds small, but a few very large ones.
+Removing the outliers from `x`, `y`, and `z` makes the distribution easier to see.
+The right skewness of these distributions is unsurprising; there should be more smaller diamonds than larger ones and these values can never be negative.
+More interestingly, there are spikes in the distribution at certain values.
+These spikes often, but not exclusively, occur near integer values.
+Without knowing more about diamond cutting, I can't say more about what these spikes represent. If you know, add a comment.
+I would guess that some diamond sizes are used more often than others, and these spikes correspond to those sizes.
+Also, I would guess that a diamond cut and carat value of a diamond imply values of `x`, `y`, and `z`. 
+Since there are spikes in the distribution of carat sizes, and only a few different cuts, that could result in these spikes.
+I'll leave it to readers to figure out if that's the case.
+```{r}
+filter(diamonds, x > 0, x < 10) %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = x), binwidth = 0.01) +
+  scale_x_continuous(breaks = 1:10)
+```
+```{r}
+filter(diamonds, y > 0, y < 10) %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = y), binwidth = 0.01) +
+  scale_x_continuous(breaks = 1:10)  
+```
+```{r}
+filter(diamonds, z > 0, z < 10) %>%
+  ggplot() +
+  geom_histogram(mapping = aes(x = z), binwidth = 0.01) +
+  scale_x_continuous(breaks = 1:10)    
+```
 
-1.  There is an outlier in `y` and `z`. This is visible in the z-axis and y-axis rugs.
-
-1.  All three distributions are bimodal.
-    This could be due to some threshold in diamond classification,
-    or popular values used for certain cuts.
-
-According to the documentation for `diamonds`, `x` is length,
-`y` is width, and `z` is depth.
-
-If documentation were unavailable, two reasonable assumptions are
-
-1.  length is less than width, otherwise the width would be called the length
-1.  depth is usually less than length or width, but not necessarily.
+According to the documentation for `diamonds`, `x` is length, `y` is width, and `z` is depth.
+If documentation were unavailable, I would compare the values of the variables to match them to the length, width, and depth.
+I would expect length to always be less than width, otherwise the length would be called the width.
+I would also search for the definitions of length, width, and depth with respect to diamond cuts.
+[Depth](https://en.wikipedia.org/wiki/Diamond_cut) can be expressed as a percentage of the length/width of the diamond, which means it should be less than both the length and the width.
 
 ```{r}
-summarise(diamonds, mean(x >= y), mean(x > z), mean(y > z))
+summarise(diamonds, mean(x > y), mean(x > z), mean(y > z))
 ```
 
-Surprisingly, it appears that depth (`z`) is always smaller than
-length (`x`) or width (`y`).  Length is less than width in more than half the observations, the opposite of expectations.
-I don't know what's going on. If this was not a widely used dataset
-I would think that `x`, `y`, and `z` were mislabeled.
+It appears that depth (`z`) is always smaller than length (`x`) or width (`y`), perhaps because a shallower depth helps when setting diamonds in jewelry and due to how it affect the reflection of light.
+Length is more than width in less than half the observations, the opposite of my expectations.
 
 </div>
 
@@ -77,12 +154,12 @@ I would think that `x`, `y`, and `z` were mislabeled.
 
 <div class="question">
 Explore the distribution of price. Do you discover anything unusual or surprising? (Hint: Carefully think about the `binwidth` and make sure you try a wide range of values.)
-</div>
+</div> 
 
 <div class="answer">
 
 -   The price data has many spikes, but I can't tell what each spike corresponds to. The following plots don't show much difference in the distributions in the last one or two digits.
--   There are no diamonds with a price of $1,500
+-   There are no diamonds with a price of \$1,500 (between \$1,450 and \$1,550).
 -   There's a bulge in the distribution around $750.
 
 ```{r}
@@ -100,16 +177,14 @@ Distribution of last digit
 diamonds %>%
   mutate(ending = price %% 10) %>%
   ggplot(aes(x = ending)) +
-  geom_histogram(binwidth = 1, center = 0) +
-  geom_bar()
+  geom_histogram(binwidth = 1, center = 0)
 ```
 
 ```{r}
 diamonds %>%
   mutate(ending = price %% 100) %>%
   ggplot(aes(x = ending)) +
-  geom_histogram(binwidth = 1) +
-  geom_bar()
+  geom_histogram(binwidth = 1)
 ```
 
 ```{r}
@@ -117,8 +192,7 @@ diamonds %>%
   mutate(ending = price %% 1000) %>%
   filter(ending >= 500, ending <= 800) %>%
   ggplot(aes(x = ending)) +
-  geom_histogram(binwidth = 1) +
-  geom_bar()
+  geom_histogram(binwidth = 1)
 ```
 
 </div>
@@ -143,13 +217,13 @@ diamonds %>%
 I don't know exactly the process behind how carats are measured, but some way or another some diamonds carat values are being "rounded up"
 Presumably there is a premium for a 1 carat diamond vs. a 0.99 carat diamond beyond the expected increase in price due to a 0.01 carat increase.
 
-To check this intuition, we'd want to look at the number of diamonds in each carat range to seem if there is an abnormally low number at 0.99 carats, and an abnormally high number at 1 carat.
+To check this intuition, we would want to look at the number of diamonds in each carat range to see if there is an unusually low number of 0.99 carat diamonds, and an abnormally large number of 1 carat diamonds.
 
 ```{r}
 diamonds %>%
   filter(carat >= 0.9, carat <= 1.1) %>%
   count(carat) %>%
-  print(n = 30)
+  print(n = Inf)
 ```
 
 </div>
@@ -192,7 +266,8 @@ ggplot(diamonds) +
 
 <div class="question">
 What happens to missing values in a histogram?
-What happens to missing values in a bar chart? > Why is there a difference?
+What happens to missing values in a bar chart?
+Why is there a difference?
 </div>
 
 <div class="answer">
@@ -284,7 +359,7 @@ What are the general relationships of each variable with the price of the diamon
 I will consider the variables: `carat`, `clarity`, `color`, and `cut`.
 I ignore the dimensions of the diamond since `carat` measures size, and thus incorporates most of the information contained in these variables.
 
-Both `price` and `carat` are continuous variables, so I will use scatterplot visualize their relationship.
+Since both `price` and `carat` are continuous variables, I use a scatter plot to visualize their relationship.
 ```{r plot_diamond_carat_price}
 ggplot(diamonds, aes(x = carat, y = price)) +
   geom_point()
@@ -304,12 +379,12 @@ There is a weak negative relationship between `color` and `price`.
 The scale of diamond color goes from D (best) to J (worst).
 Currently, the levels of `diamonds$color` are in the wrong order.
 Before plotting, I will reverse the order of the `color` levels so they will be in increasing order of quality on the x-axis.
-The `color` column is an example of a factor variable, which will is covered in the
+The `color` column is an example of a factor variable, which is covered in the
 "[Factors](https://r4ds.had.co.nz/factors.html)" chapter of *R4DS*.
 
 ```{r plot_diamond_color_price}
 diamonds %>%
-  mutate(color = forcats::fct_rev(color)) %>%
+  mutate(color = fct_rev(color)) %>%
   ggplot(aes(x = color, y = price)) +
   geom_boxplot()
 ```
@@ -389,7 +464,6 @@ far more quantiles than box-plots. They are useful for larger datasets because,
 1.  in expectation, larger datasets should have more outliers (in absolute numbers).
 
 ```{r}
-library("lvplot")
 ggplot(diamonds, aes(x = cut, y = price)) +
   geom_lv()
 ```
@@ -458,7 +532,6 @@ There are two methods:
 I'll use the `mpg`  box plot example since these methods display individual points, they are better suited for smaller datasets.
 
 ```{r}
-library("ggbeeswarm")
 ggplot(data = mpg) +
   geom_quasirandom(mapping = aes(
     x = reorder(class, hwy, FUN = median),
@@ -533,7 +606,6 @@ How could you rescale the count dataset above to more clearly show the distribut
 To clearly show the distribution of `cut` within `color`, calculate a new variable `prop` which is the proportion of each cut within a `color`.
 This is done using a grouped mutate.
 ```{r}
-library(viridis)
 
 diamonds %>%
   count(color, cut) %>%
@@ -593,7 +665,6 @@ In this case, missing values correspond to airports which don't have regular fli
 These are likely smaller airports (with higher variance in their average due to fewer observations).
 
 ```{r}
-library("viridis")
 flights %>%
   group_by(month, dest) %>%
   summarise(dep_delay = mean(dep_delay, na.rm = TRUE)) %>%

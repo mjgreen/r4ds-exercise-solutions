@@ -2,9 +2,8 @@
 
 ## Introduction {#introduction-8 .r4ds-section}
 
-```{r message=FALSE}
-library(tidyverse)
-library(stringr)
+```{r message=FALSE,cache=FALSE}
+library("tidyverse")
 ```
 
 ## String basics {#string-basics .r4ds-section}
@@ -187,7 +186,7 @@ How would you match the sequence `"'\` ?
 
 <div class="answer">
 
-```{r }
+```{r cache=FALSE}
 str_view("\"'\\", "\"'\\\\", match = TRUE)
 ```
 
@@ -203,7 +202,7 @@ What patterns will the regular expression `\..\..\..` match? How would you repre
 
 It will match any patterns that are a dot followed by any character, repeated three times.
 
-```{r }
+```{r cache=FALSE}
 str_view(c(".a.b.c", ".a.b", "....."), c("\\..\\..\\.."), match = TRUE)
 ```
 
@@ -219,7 +218,8 @@ How would you match the literal string `"$^$"`?
 
 <div class="answer">
 
-```{r }
+To check that the pattern works, I'll include both the string `"$^$"`, and an example where that pattern occurs in the middle of the string which should not be matched.
+```{r cache=FALSE}
 str_view(c("$^$", "ab$^$sfas"), "^\\$\\^\\$$", match = TRUE)
 ```
 
@@ -245,25 +245,25 @@ The answer to each part follows.
 
 1.  The words that start with  “y” are:
 
-    ```{r }
+    ```{r cache=FALSE}
     str_view(stringr::words, "^y", match = TRUE)
     ```
 
 1.  End with “x”
 
-    ```{r }
+    ```{r cache=FALSE}
     str_view(stringr::words, "x$", match = TRUE)
     ```
 
 1.  Are exactly three letters long are
 
-    ```{r }
+    ```{r cache=FALSE}
     str_view(stringr::words, "^...$", match = TRUE)
     ```
 
 1.  The words that have seven letters or more are
 
-    ```{r }
+    ```{r cache=FALSE}
     str_view(stringr::words, ".......", match = TRUE)
     ```
 
@@ -284,34 +284,40 @@ Create regular expressions to find all words that:
 
 </div>
 
-<div class="answer">
+<xdiv class="answer">
 
 The answer to each part follows.
 
 1.  Words starting with vowels
 
     ```{r }
-    str_view(stringr::words, "^[aeiou]", match = TRUE)
+    str_subset(stringr::words, "^[aeiou]")
     ```
 
 1.  Words that contain only consonants
 
-    ```{r }
-    str_view(stringr::words, "^[^aeiou]+$", match = TRUE)
+    ```{r}
+    str_subset(stringr::words, "^[^aeiou]+$")
     ```
 
     This seems to require using the `+` pattern introduced later, unless one wants to be very verbose and specify words of certain lengths.
 
-1.  Words that end with "-ed" but not ending in "-eed". This handles the special case of "-ed", as well as words with a length great than two.
+1.  Words that end with "-ed" but not ending in "-eed".
 
     ```{r }
-    str_view(stringr::words, "^ed$|[^e]ed$", match = TRUE)
+    str_subset(stringr::words, "[^e]ed$")
+    ```
+    
+    The pattern above will not match the word `"ed"`. If we wanted to include that, we could include it as a special case.
+    
+    ```{r}
+    str_subset(c("ed", stringr::words), "(^|[^e])ed$")
     ```
 
 1.  Words ending in `ing` or `ise`:
 
     ```{r }
-    str_view(stringr::words, "i(ng|se)$", match = TRUE)
+    str_subset(stringr::words, "i(ng|se)$")
     ```
 
 </div>
@@ -326,20 +332,12 @@ Empirically verify the rule “i” before e except after “c”.
 
 <div class="answer">
 
-Using only what has been introduced thus far:
-
 ```{r }
-str_view(stringr::words, "(cei|[^c]ie)", match = TRUE)
+length(str_subset(stringr::words, "(cei|[^c]ie)"))
 ```
 
 ```{r }
-str_view(stringr::words, "(cie|[^c]ei)", match = TRUE)
-```
-
-Using `str_detect()` count the number of words that follow these rules:
-```{r }
-sum(str_detect(stringr::words, "(cei|[^c]ie)"))
-sum(str_detect(stringr::words, "(cie|[^c]ei)"))
+length(str_subset(stringr::words, "(cie|[^c]ei)"))
 ```
 
 </div>
@@ -352,10 +350,15 @@ Is “q” always followed by a “u”?
 
 <div class="answer">
 
-In the `stringr::words` dataset, yes. In the full English language, no.
-```{r }
+In the `stringr::words` dataset, yes.
+```{r cache=FALSE}
 str_view(stringr::words, "q[^u]", match = TRUE)
 ```
+
+In the English language--- [no](https://en.wiktionary.org/wiki/Appendix:English_words_containing_Q_not_followed_by_U).
+However, the examples are few, and mostly loanwords, such as "burqa" and "cinq".
+Also, "qwerty".
+That I had to add all of those examples to the list of words that spellchecking should ignore is indicative of their rarity.
 
 </div>
 
@@ -390,20 +393,24 @@ Create a regular expression that will match telephone numbers as commonly writte
 
 <div class="answer">
 
+<div class="alert alert-primary hints-alert>
+This answer can be improved and expanded.
+</div>
+
 The answer to this will vary by country.
 
 For the United States, phone numbers have a format like `123-456-7890`.
-```{r }
+```{r cache=FALSE}
 x <- c("123-456-7890", "1235-2351")
 str_view(x, "\\d\\d\\d-\\d\\d\\d-\\d\\d\\d\\d")
 ```
 or
-```{r }
-str_view(x, "[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][0-9][0-9]")
+```{r cache=FALSE}
+str_view(x, "[0-9][0-9][0-9]-[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]")
 ```
 
 This regular expression can be simplified with the `{m,n}` regular expression modifier introduced in the next section,
-```{r }
+```{r cache=FALSE}
 str_view(x, "\\d{3}-\\d{3}-\\d{4}")
 ```
 
@@ -412,7 +419,7 @@ because of unassigned area code, or special numbers like 911, or extensions.
 See the Wikipedia page for the [North American Numbering
 Plan](https://en.wikipedia.org/wiki/North_American_Numbering_Plan) for more
 information on the complexities of US phone numbers, and [this Stack Overflow
-question](http://stackoverflow.com/questions/123559/a-comprehensive-regex-for-phone-number-validation)
+question](https://stackoverflow.com/questions/123559/a-comprehensive-regex-for-phone-number-validation)
 for a discussion of using a regex for phone number validation.
 
 </div>
@@ -438,34 +445,34 @@ For example, let's repeat the examples in the chapter, replacing `?` with `{0,1}
 ```{r }
 x <- "1888 is the longest year in Roman numerals: MDCCCLXXXVIII"
 ```
-```{r}
+```{r cache=FALSE}
 str_view(x, "CC?")
 ```
-```{r }
+```{r cache=FALSE}
 str_view(x, "CC{0,1}")
 ```
 
-```{r }
+```{r cache=FALSE}
 str_view(x, "CC+")
 ```
-```{r }
+```{r cache=FALSE}
 str_view(x, "CC{1,}")
 ```
 
-```{r }
+```{r cache=FALSE}
 str_view_all(x, "C[LX]+")
 ```
-```{r }
+```{r cache=FALSE}
 str_view_all(x, "C[LX]{0,1}")
 ```
 
 The chapter does not contain an example of `*`.
 This pattern looks for a "C" optionally followed by
 any number of "L" or "X" characters.
-```{r }
+```{r cache=FALSE}
 str_view_all(x, "C[LX]*")
 ```
-```{r }
+```{r cache=FALSE}
 str_view_all(x, "C[LX]{0,}")
 ```
 
@@ -519,19 +526,19 @@ The answer to each part follows.
 
 1.  This regex finds all words starting with three consonants.
 
-    ```{r }
+    ```{r cache=FALSE}
     str_view(words, "^[^aeiou]{3}", match = TRUE)
     ```
 
 1.  This regex finds three or more vowels in a row:
 
-    ```{r }
+    ```{r cache=FALSE}
     str_view(words, "[aeiou]{3,}", match = TRUE)
     ```
 
 1.  This regex finds two or more vowel-consonant pairs in a row.
 
-    ```{r }
+    ```{r cache=FALSE}
     str_view(words, "([aeiou][^aeiou]){2,}", match = TRUE)
     ```
 
@@ -593,21 +600,22 @@ Construct regular expressions to match words that:
 
 The answer to each part follows.
 
-1.  This regular expression matches words that and end with the same character.
+<!-- Use str_subset because I just want to pull words out -->
+
+1.  This regular expression matches words that start and end with the same character.
 
     ```{r }
-    str_view(stringr::words, "^(.)((.*\\1$)|\\1?$)", match = TRUE)
+    str_subset(words, "^(.)((.*\\1$)|\\1?$)")
     ```
 
-1.  Either of these patterns checks for any pair of repeated letters, where
-    *letters* is defined to the ASCII letters A-Z.
-    
-    ```{r }
-    str_view(words, "([A-Za-z][A-Za-z]).*\\1", match = TRUE)
+1.  This regular expression will match any pair of repeated letters, where *letters* is defined to be the ASCII letters A-Z.
+    First, check that it works with the example in the problem.
+    ```{r}
+    str_subset("church", "([A-Za-z][A-Za-z]).*\\1")
     ```
-
-    ```{r }
-    str_view(words, "([[:letter:]]).*\\1", match = TRUE)
+    Now, find all matching words in `words`.
+    ```{r}
+    str_subset(words, "([A-Za-z][A-Za-z]).*\\1")
     ```
 
     The `\\1` pattern is called a backreference. It matches whatever the first group
@@ -619,9 +627,13 @@ The answer to each part follows.
     of letters with different capitalization.
 
 1.  This regex matches words that contain one letter repeated in at least three places.
-
+    First, check that it works with th example given in the question.
     ```{r}
-    str_subset(str_to_lower(words), "([a-z]).*\\1.*\\1")
+    str_subset("eleven", "([a-z]).*\\1.*\\1")
+    ```
+    Now, retrieve the matching words in `words`.
+    ```{r}
+    str_subset(words, "([a-z]).*\\1.*\\1")
     ```
 
 </div>
@@ -760,7 +772,7 @@ colour_match2
 ```{r}
 more2 <- sentences[str_count(sentences, colour_match) > 1]
 ```
-```{r }
+```{r cache=FALSE}
 str_view_all(more2, colour_match2, match = TRUE)
 ```
 
@@ -784,9 +796,19 @@ The answer to each part follows.
 
 1.  Finding the first word in each sentence requires defining what a pattern constitutes a word. For the purposes of this question,
     I'll consider a word any contiguous set of letters.
+    Since `str_extract()` will extract the first match, if it is provided a 
+    regular expression for words, it will return the first word.
 
     ```{r}
-    str_extract(sentences, "[a-zA-Z]+") %>% head()
+    str_extract(sentences, "[A-ZAa-z]+") %>% head()
+    ```
+    
+    However, the third sentence begins with "It's". To catch this, I'll 
+    change the regular expression to require the string to begin with a letter,
+    but allow for a subsequent apostrophe.
+    
+    ```{r}
+    str_extract(sentences, "[A-Za-z][A-Za-z']*") %>% head()
     ```
 
 1.  This pattern finds all words ending in `ing`.
@@ -824,9 +846,8 @@ Pull out both the number and the word.
 
 <div class="answer">
 
-I'll use the same following "word" pattern as used above
 ```{r}
-numword <- "(one|two|three|four|five|six|seven|eight|nine|ten) +(\\S+)"
+numword <- "\\b(one|two|three|four|five|six|seven|eight|nine|ten) +(\\w+)"
 sentences[str_detect(sentences, numword)] %>%
   str_extract(numword)
 ```
@@ -844,10 +865,13 @@ Separate out the pieces before and after the apostrophe.
 
 <div class="answer">
 
+This is done in two steps. First, identify the contractions. Second, split the string on the contraction.
+
 ```{r}
 contraction <- "([A-Za-z]+)'([A-Za-z]+)"
 sentences[str_detect(sentences, contraction)] %>%
-  str_extract(contraction)
+  str_extract(contraction) %>%
+  str_split("'")
 ```
 
 </div>

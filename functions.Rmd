@@ -154,7 +154,7 @@ coef_variation(c(1:5, NA), na.rm = TRUE)
 
 <div class="question">
 
-Follow <http://nicercode.github.io/intro/writing-functions.html> to write your own functions to compute the variance and skew of a numeric vector.
+Follow <https://nicercode.github.io/intro/writing-functions.html> to write your own functions to compute the variance and skew of a numeric vector.
 
 </div>
 
@@ -192,7 +192,7 @@ skewness <- function(x, na.rm = FALSE) {
   n <- length(x)
   m <- mean(x, na.rm = na.rm)
   v <- var(x, na.rm = na.rm)
-  (sum(x - m) ^ 3 / (n - 2)) / v ^ (3 / 2)
+  (sum((x - m) ^ 3) / (n - 2)) / v ^ (3 / 2)
 }
 ```
 ```{r}
@@ -483,12 +483,33 @@ you create the function.
 
 <div class="answer">
 
+We can use modulo operator, `%%`, to check divisibility.
+The expression `x %% y` returns 0 if `y` divides `x`.
+```{r}
+1:10 %% 3 == 0
+```
+A more concise way of checking for divisibility is to note that the not operator will return `TRUE` for 0, and `FALSE` for all non-zero numbers.
+Thus, `!(x %% y)`, will check whether `y` divides `x`.
+```{r}
+!(1:10 %% 3)
+```
+
+There are four cases to consider:
+
+1.  If `x` is divisible by 3 and 5, then return "fizzbuzz".
+1.  If `x` is divisible by 3 and not 5, then return "fizz".
+1.  If `x` is divisible by 5 and not 3, then return "buzz".
+1.  Otherwise, which is the case in which `x` is not divisible by either 3 or 5, return `x`.
+
+The key to answering this question correctly, is to first check whether `x`
+is divisible by both 3 and 5. 
+If the function checks whether `x` is divisible by 3 or 5 before considering the case that the number is divisible by both, then the function will never return `"fizzbuzz"`.
+
 ```{r}
 fizzbuzz <- function(x) {
+  # these two lines check that x is a valid input
   stopifnot(length(x) == 1)
   stopifnot(is.numeric(x))
-  # this could be made more efficient by minimizing the
-  # number of tests
   if (!(x %% 3) && !(x %% 5)) {
     "fizzbuzz"
   } else if (!(x %% 3)) {
@@ -496,7 +517,8 @@ fizzbuzz <- function(x) {
   } else if (!(x %% 5)) {
     "buzz"
   } else {
-    x
+    # ensure that the function returns a character vector
+    as.character(x)
   }
 }
 fizzbuzz(6)
@@ -504,6 +526,63 @@ fizzbuzz(10)
 fizzbuzz(15)
 fizzbuzz(2)
 ```
+
+This function can be slightly improved by combining the first two lines conditions so
+we only check whether `x` is divisible by 3 once.
+```{r}
+fizzbuzz2 <- function(x) {
+  # these two lines check that x is a valid input
+  stopifnot(length(x) == 1)
+  stopifnot(is.numeric(x))
+  if (!(x %% 3)) {
+    if (!(x %% 5)) {
+      "fizzbuzz"
+    } else {
+      "fizz"
+    }
+  } else if (!(x %% 5)) {
+    "buzz"
+  } else {
+    # ensure that the function returns a character vector
+    as.character(x)
+  }
+}
+fizzbuzz2(6)
+fizzbuzz2(10)
+fizzbuzz2(15)
+fizzbuzz2(2)
+```
+
+Instead of only accepting one number as an input, we could a FizzBuzz function that works on a vector. 
+The `case_when()` function vectorizes multiple if-else conditions, so is perfect for this task.
+In fact, fizz-buzz is used in the examples in the documentation of `case_when()`.
+```{r}
+fizzbuzz_vec <- function(x) {
+  case_when(!(x %% 3) & !(x %% 5) ~ "fizzbuzz",
+            !(x %% 3) ~ "fizz",
+            !(x %% 5) ~ "buzz",
+            TRUE ~ as.character(x)
+            )
+}
+fizzbuzz_vec(c(0, 1, 2, 3, 5, 9, 10, 12, 15))
+```
+
+The following function is an example of a vectorized FizzBuzz function that
+only uses bracket assignment.
+```{r}
+fizzbuzz_vec2 <- function(x) {
+  y <- as.character(x)
+  # put the individual cases first - any elements divisible by both 3 and 5
+  # will be overwritten with fizzbuzz later
+  y[!(x %% 3)] <- "fizz"
+  y[!(x %% 3)] <- "buzz"
+  y[!(x %% 3) & !(x %% 5)] <- "fizzbuzz"
+  y
+}
+fizzbuzz_vec2(c(0, 1, 2, 3, 5, 9, 10, 12, 15))
+```
+
+This question, called the ["Fizz Buzz"](https://en.wikipedia.org/wiki/Fizz_buzz) question, is a common programming interview question used for screening out programmers who can't program.[^fizzbuzz]
 
 </div>
 
@@ -660,7 +739,7 @@ What does `commas(letters, collapse = "-")` do? Why?
 The `commas()` function in the chapter is defined as
 ```{r}
 commas <- function(...) {
-  stringr::str_c(..., collapse = ", ")
+  str_c(..., collapse = ", ")
 }
 ```
 
@@ -680,7 +759,7 @@ One way to allow the user to override the separator in `commas()` is to add a `c
 argument to the function.
 ```{r}
 commas <- function(..., collapse = ", ") {
-  stringr::str_c(..., collapse = collapse)
+  str_c(..., collapse = collapse)
 }
 ```
 
@@ -697,20 +776,20 @@ Why doesn’t this currently work? How could you fix it?
 
 <div class="answer">
 
-This is the definition of the rule function from the [chapter](http://r4ds.had.co.nz/functions.html).
+This is the definition of the rule function from the [chapter](https://r4ds.had.co.nz/functions.html).
 ```{r}
 rule <- function(..., pad = "-") {
   title <- paste0(...)
   width <- getOption("width") - nchar(title) - 5
-  cat(title, " ", stringr::str_dup(pad, width), "\n", sep = "")
+  cat(title, " ", str_dup(pad, width), "\n", sep = "")
 }
 ```
 ```{r}
 rule("Important output")
 ```
 
-You can currently supply multiple characters to the `pad` argument, but the output is
-will not be the desired width. The `rule()` function duplicates `pad` a number of times
+You can currently supply multiple characters to the `pad` argument, but the output will not be the desired width. 
+The `rule()` function duplicates `pad` a number of times
 equal to the desired width minus the length of the title and five extra characters.
 This implicitly assumes that `pad` is only one character. If `pad` were two character,
 the output will be almost twice as long.
@@ -718,17 +797,17 @@ the output will be almost twice as long.
 rule("Valuable output", pad = "-+")
 ```
 
-One way to handle this is to use `stringr::str_trunc()` to truncate the string,
-and `stringr::str_length()` to calculate the number of characters in the `pad` argument.
+One way to handle this is to use `str_trunc()` to truncate the string,
+and `str_length()` to calculate the number of characters in the `pad` argument.
 ```{r}
 rule <- function(..., pad = "-") {
   title <- paste0(...)
   width <- getOption("width") - nchar(title) - 5
-  padding <- stringr::str_dup(
+  padding <- str_dup(
     pad,
-    ceiling(width / stringr::str_length(title))
+    ceiling(width / str_length(title))
   ) %>%
-    stringr::str_trunc(width)
+    str_trunc(width)
   cat(title, " ", padding, "\n", sep = "")
 }
 rule("Important output")
@@ -774,3 +853,5 @@ The first value, `"pearson"`, is used by default.
 ## Environment {#environment .r4ds-section}
 
 `r no_exercises()`
+
+[fizzbuzz]: Read [Why I’m still using “Fizz Buzz” to hire Software-Developers](https://hackernoon.com/why-im-still-using-fizz-buzz-to-hire-software-developers-7e31a89a4bbf) for more discussion on the use of the Fizz-Buzz question in programming interviews.

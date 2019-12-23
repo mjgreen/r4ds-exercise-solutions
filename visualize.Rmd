@@ -8,7 +8,7 @@ editor_options:
 
 ## Introduction {#introduction-1 .r4ds-section}
 
-```{r, message=FALSE}
+```{r, message=FALSE,cache=FALSE}
 library("tidyverse")
 ```
 
@@ -122,9 +122,9 @@ n_comb_actual <- nrow(distinct(mpg, drv, class))
 A scatter plot is not a useful display of these variables since both `drv` and `class` are categorical variables.
 Since categorical variables typically take a small number of values,
 there are a limited number of unique combinations of (`x`, `y`) values that can be displayed.
-In this data, `mpg` takes `r n_drv` values and `class` takes `r n_class` values,
-meaning that there are only `r n_comb` values that could be plotted on a scatterplot of `mpg` vs. `class`.
-In this data, there `r n_comb_actual` values of (`mpg`, `class`) are observed.
+In this data, `drv` takes `r n_drv` values and `class` takes `r n_class` values,
+meaning that there are only `r n_comb` values that could be plotted on a scatterplot of `drv` vs. `class`.
+In this data, there `r n_comb_actual` values of (`drv`, `class`) are observed.
 
 ```{r}
 count(mpg, drv, class)
@@ -187,7 +187,7 @@ ggplot(data = mpg) +
 <div class="answer">
 
 The argument`colour = "blue"` is included within the `mapping` argument, and as such, it is treated as an aesthetic, which is a mapping between a variable and a value.
-In the expression, `color="blue"`, `"blue"` is interpreted as a categorical variable which only takes a single value `"blue"`.
+In the expression, `colour = "blue"`, `"blue"` is interpreted as a categorical variable which only takes a single value `"blue"`.
 If this is confusing, consider how `colour = 1:234` and `colour = 1` are interpreted by `aes()`.
 
 The following code does produces the expected result.
@@ -550,7 +550,7 @@ An area chart?
 
 -   line chart: `geom_line()`
 -   boxplot: `geom_boxplot()`
--   histogram: `geom_hist()`
+-   histogram: `geom_histogram()`
 -   area chart: `geom_area()`
 
 </div>
@@ -822,7 +822,7 @@ The `geom_col()` function expects that the data contains `x` values and `y` valu
 
 The default stat of `geom_bar()` is `stat_bin()`.
 The `geom_bar()` function only expects an `x` variable.
-The stat, `stat_bin()`,  preprocess input data by counting the number of observations for each value of `x`.
+The stat, `stat_bin()`,  preprocesses input data by counting the number of observations for each value of `x`.
 The `y` aesthetic uses the values of these counts.
 
 </div>
@@ -1004,13 +1004,16 @@ ggplot(data = diamonds) +
   geom_bar(mapping = aes(x = cut, fill = color, y = ..prop..))
 ```
 
-The following code will produce the intended stacked bar charts.
+The following code will produce the intended stacked bar charts for the case with no `fill` aesthetic.
 ```{r}
 ggplot(data = diamonds) +
   geom_bar(mapping = aes(x = cut, y = ..prop.., group = 1))
+```
 
-ggplot(data = diamonds) +
-  geom_bar(mapping = aes(x = cut, fill = color, y = ..prop.., group = color))
+With the `fill` aesthetic, the heights of the bars need to be normalized.
+```{r}
+ggplot(data = diamonds) + 
+  geom_bar(aes(x = cut, y = ..count.. / sum(..count..), fill = color))
 ```
 
 </div>
@@ -1250,7 +1253,7 @@ ggplot(data = mpg, mapping = aes(x = class, y = hwy)) +
   geom_boxplot() +
   coord_flip() +
   labs(y = "Highway MPG",
-       x = "Year",
+       x = "Class",
        title = "Highway MPG by car class",
        subtitle = "1999-2008",
        caption = "Source: http://fueleconomy.gov")

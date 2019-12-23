@@ -9,6 +9,7 @@ ae
 Ames
 ATL
 BDL
+benchmarking
 Berkson's
 bimodal
 bimodality
@@ -17,11 +18,13 @@ BNA
 bookdown
 BOS
 bts
+burqa
 cancelled
 carajoos
 chardet
 Chua
 Chuan
+cinq
 CLDR
 ClevelandMcGillMcGill
 CN
@@ -37,6 +40,7 @@ cyclicality
 datamodelr
 datasets
 datetimes
+De
 Deja
 denormal
 derecho
@@ -68,6 +72,7 @@ facetting
 FiraCode
 FiveThirtyEight
 fizzbuzz
+forcats
 frac
 gapminder
 Gapminder
@@ -196,6 +201,7 @@ rstudiotips
 Sanglard
 sd
 SelectFields
+Shalloway
 StackOverflow
 stringi
 stringr
@@ -228,3 +234,6 @@ yaml
 YAML
 yyyy
 YYYY
+FizzBuzz
+vectorizes
+vectorized

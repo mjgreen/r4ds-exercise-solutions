@@ -8,16 +8,19 @@ editor_options:
 
 ## Introduction {#introduction-15 .r4ds-section}
 
-```{r, message=FALSE}
+```{r, message=FALSE,cache=FALSE}
 library("tidyverse")
 library("modelr")
-options(na.action = na.warn)
 ```
 
 The option `na.action` determines how missing values are handled.
 It is a function.
 `na.warn` sets it so that there is a warning if there are any missing values.
 If it is not set (the default), R will silently drop them.
+
+```{r}
+options(na.action = na.warn)
+```
 
 ## A simple model {#a-simple-model .r4ds-section}
 
@@ -144,8 +147,8 @@ best <- optim(c(0, 0), measure_distance_ls, data = sim1a)
 best$par
 ```
 
-In practice, you would not use a `optim()` to fit this model, you would you an existing implementation.
-See the MASS package's `rlm()` and `lqs()` functions for more information and functions to fit robust and resistant linear models.
+In practice, I suggest not using  `optim()` to fit this model, and instead using an existing implementation.
+The `rlm()` and `lqs()` functions in the [MASS](https://CRAN.R-project.org/package=MASS) fit robust and resistant linear models.
 
 </div>
 
@@ -428,7 +431,7 @@ mod2 <- lm(y ~ x1 * x2, data = sim3)
 
 <div class="answer">
 
-The problem is to convert the formulas in the the models into functions. 
+The problem is to convert the formulas in the models into functions. 
 I will assume that the function is only handling the conversion of the right hand side of the formula into a model matrix.
 The functions will take one argument, a data frame with `x1` and `x2` columns,
 and it will return a data frame.
